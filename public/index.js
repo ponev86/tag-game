@@ -34699,7 +34699,7 @@ styleInject(css_248z$1);
 
 const Hello = ({ name }) => (jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: jsxRuntimeExports.jsxs("h1", { className: classNames(classes.title, classes.title_green), children: ["Hello ", name ? name : 'World', "!"] }) }));
 
-const App = () => jsxRuntimeExports.jsx(Hello, { name: 'Neo' });
+const App = () => jsxRuntimeExports.jsx(Hello, { name: "Neo" });
 
 var css_248z = "* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box; }\n\nbody {\n  background-color: #333; }\n";
 styleInject(css_248z);
