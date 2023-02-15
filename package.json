@@ -9,7 +9,7 @@
     "build": "rimraf build && cross-env NODE_ENV=production rollup -c",
     "lint": "eslint src/**/*.{js,jsx,ts,tsx,json} --color",
     "lint:fix": "eslint --fix 'src/**/*.{js,jsx,ts,tsx,json}' --color",
-    "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc"
+    "prettify": "prettier --write 'src/**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
