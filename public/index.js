@@ -34697,7 +34697,7 @@ var css_248z$1 = ".Hello-module_title__nwSpf {\n  background-color: #999;\n  fon
 var classes = {"title":"Hello-module_title__nwSpf","title_green":"Hello-module_title_green__mcSXz"};
 styleInject(css_248z$1);
 
-const Hello = ({ name }) => (jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: jsxRuntimeExports.jsxs("h1", { className: classNames(classes.title, classes.title_green), children: ["Hello ", name ? name : 'World', "!"] }) }));
+const Hello = ({ name }) => (jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [jsxRuntimeExports.jsxs("h1", { className: classNames(classes.title, classes.title_green), children: ["Hello ", name ? name : 'World', "!"] }), jsxRuntimeExports.jsx("p", { children: "Test husky" })] }));
 
 const App = () => jsxRuntimeExports.jsx(Hello, { name: "Neo" });
 

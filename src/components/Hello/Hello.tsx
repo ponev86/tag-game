@@ -10,6 +10,7 @@ interface HelloProps {
 const Hello: FC<HelloProps> = ({ name }) => (
   <>
     <h1 className={classNames(classes.title, classes.title_green)}>Hello {name ? name : 'World'}!</h1>
+    <p>Test husky</p>
   </>
 );
 
