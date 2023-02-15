@@ -1,7 +1,7 @@
 {
-	"exclude": ["node_modules"],
-	"compilerOptions": {
-		"jsx": "react-jsx",
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "jsx": "react-jsx",
     "target": "esnext",
     "allowSyntheticDefaultImports": true,
     "strict": true,
@@ -13,6 +13,6 @@
     "baseUrl": "./src",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "module": "esnext",
-	}
+    "module": "esnext"
+  }
 }
