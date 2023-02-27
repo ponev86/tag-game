@@ -18,6 +18,7 @@
   },
   "plugins": ["react", "react-hooks", "@typescript-eslint", "prettier"],
   "rules": {
+    "react/react-in-jsx-scope": "off",
     "import/no-anonymous-default-export": "off",
     "max-len": [
       "warn",
