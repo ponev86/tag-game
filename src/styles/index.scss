@@ -2,5 +2,6 @@
 @import 'reset';
 
 body {
-  @include bgColor(#333);
+  font: 16px/1.4 Georgia, serif;
+  background-color: #c4c4c4;
 }

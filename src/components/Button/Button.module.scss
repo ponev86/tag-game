@@ -1,0 +1,31 @@
+.button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 25%;
+  height: 25%;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #82302a;
+  font-size: 2rem;
+  background-color: #cc302a;
+  color: #fff;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.2s;
+
+  &__circle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 80%;
+    height: 80%;
+    margin: 0 auto;
+    border-radius: 100%;
+    box-shadow: 0px 0px 25px 0px rgba(130, 48, 42, 0.5) inset;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
