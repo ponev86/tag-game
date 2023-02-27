@@ -6,6 +6,44 @@
   r.id = 'livereloadscript';
   l.getElementsByTagName('head')[0].appendChild(r);
 })(self.document);
+function getDefaultExportFromCjs(x) {
+  return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+}
+
+function getAugmentedNamespace(n) {
+  if (n.__esModule) return n;
+  var f = n.default;
+  if (typeof f == 'function') {
+    var a = function a() {
+      if (this instanceof a) {
+        var args = [null];
+        args.push.apply(args, arguments);
+        var Ctor = Function.bind.apply(f, args);
+        return new Ctor();
+      }
+      return f.apply(this, arguments);
+    };
+    a.prototype = f.prototype;
+  } else a = {};
+  Object.defineProperty(a, '__esModule', { value: true });
+  Object.keys(n).forEach(function (k) {
+    var d = Object.getOwnPropertyDescriptor(n, k);
+    Object.defineProperty(
+      a,
+      k,
+      d.get
+        ? d
+        : {
+            enumerable: true,
+            get: function () {
+              return n[k];
+            },
+          }
+    );
+  });
+  return a;
+}
+
 var jsxRuntimeExports = {};
 var jsxRuntime = {
   get exports() {
@@ -2986,6 +3024,8 @@ var react_development = {
     module.exports = react_developmentExports;
   }
 })(react);
+
+var React = /*@__PURE__*/ getDefaultExportFromCjs(reactExports);
 
 /**
  * @license React
@@ -37198,6 +37238,1358 @@ var m = reactDomExports;
   };
 }
 
+const ROWS = 4;
+const COLS = 4;
+const TOTAL_COUNT = ROWS * COLS;
+const EMPTY_INDEX = TOTAL_COUNT - 1;
+const SHUFFLE_MOVES_RANGE_MIN = 60;
+const SHUFFLE_MOVES_RANGE_MAX = 80;
+const MOVE_DIRECTIONS = ['up', 'down', 'left', 'right'];
+
+var shimExports = {};
+var shim = {
+  get exports() {
+    return shimExports;
+  },
+  set exports(v) {
+    shimExports = v;
+  },
+};
+
+var useSyncExternalStoreShim_development = {};
+
+/**
+ * @license React
+ * use-sync-external-store-shim.development.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+{
+  (function () {
+    /* global __REACT_DEVTOOLS_GLOBAL_HOOK__ */
+    if (
+      typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== 'undefined' &&
+      typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === 'function'
+    ) {
+      __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
+    }
+    var React = reactExports;
+
+    var ReactSharedInternals = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+
+    function error(format) {
+      {
+        {
+          for (
+            var _len2 = arguments.length, args = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1;
+            _key2 < _len2;
+            _key2++
+          ) {
+            args[_key2 - 1] = arguments[_key2];
+          }
+
+          printWarning('error', format, args);
+        }
+      }
+    }
+
+    function printWarning(level, format, args) {
+      // When changing this logic, you might want to also
+      // update consoleWithStackDev.www.js as well.
+      {
+        var ReactDebugCurrentFrame = ReactSharedInternals.ReactDebugCurrentFrame;
+        var stack = ReactDebugCurrentFrame.getStackAddendum();
+
+        if (stack !== '') {
+          format += '%s';
+          args = args.concat([stack]);
+        } // eslint-disable-next-line react-internal/safe-string-coercion
+
+        var argsWithFormat = args.map(function (item) {
+          return String(item);
+        }); // Careful: RN currently depends on this prefix
+
+        argsWithFormat.unshift('Warning: ' + format); // We intentionally don't use spread (or .apply) directly because it
+        // breaks IE9: https://github.com/facebook/react/issues/13610
+        // eslint-disable-next-line react-internal/no-production-logging
+
+        Function.prototype.apply.call(console[level], console, argsWithFormat);
+      }
+    }
+
+    /**
+     * inlined Object.is polyfill to avoid requiring consumers ship their own
+     * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is
+     */
+    function is(x, y) {
+      return (
+        (x === y && (x !== 0 || 1 / x === 1 / y)) || (x !== x && y !== y) // eslint-disable-line no-self-compare
+      );
+    }
+
+    var objectIs = typeof Object.is === 'function' ? Object.is : is;
+
+    // dispatch for CommonJS interop named imports.
+
+    var useState = React.useState,
+      useEffect = React.useEffect,
+      useLayoutEffect = React.useLayoutEffect,
+      useDebugValue = React.useDebugValue;
+    var didWarnOld18Alpha = false;
+    var didWarnUncachedGetSnapshot = false; // Disclaimer: This shim breaks many of the rules of React, and only works
+    // because of a very particular set of implementation details and assumptions
+    // -- change any one of them and it will break. The most important assumption
+    // is that updates are always synchronous, because concurrent rendering is
+    // only available in versions of React that also have a built-in
+    // useSyncExternalStore API. And we only use this shim when the built-in API
+    // does not exist.
+    //
+    // Do not assume that the clever hacks used by this hook also work in general.
+    // The point of this shim is to replace the need for hacks by other libraries.
+
+    function useSyncExternalStore(
+      subscribe,
+      getSnapshot, // Note: The shim does not use getServerSnapshot, because pre-18 versions of
+      // React do not expose a way to check if we're hydrating. So users of the shim
+      // will need to track that themselves and return the correct value
+      // from `getSnapshot`.
+      getServerSnapshot
+    ) {
+      {
+        if (!didWarnOld18Alpha) {
+          if (React.startTransition !== undefined) {
+            didWarnOld18Alpha = true;
+
+            error(
+              'You are using an outdated, pre-release alpha of React 18 that ' +
+                'does not support useSyncExternalStore. The ' +
+                'use-sync-external-store shim will not work correctly. Upgrade ' +
+                'to a newer pre-release.'
+            );
+          }
+        }
+      } // Read the current snapshot from the store on every render. Again, this
+      // breaks the rules of React, and only works here because of specific
+      // implementation details, most importantly that updates are
+      // always synchronous.
+
+      var value = getSnapshot();
+
+      {
+        if (!didWarnUncachedGetSnapshot) {
+          var cachedValue = getSnapshot();
+
+          if (!objectIs(value, cachedValue)) {
+            error('The result of getSnapshot should be cached to avoid an infinite loop');
+
+            didWarnUncachedGetSnapshot = true;
+          }
+        }
+      } // Because updates are synchronous, we don't queue them. Instead we force a
+      // re-render whenever the subscribed state changes by updating an some
+      // arbitrary useState hook. Then, during render, we call getSnapshot to read
+      // the current value.
+      //
+      // Because we don't actually use the state returned by the useState hook, we
+      // can save a bit of memory by storing other stuff in that slot.
+      //
+      // To implement the early bailout, we need to track some things on a mutable
+      // object. Usually, we would put that in a useRef hook, but we can stash it in
+      // our useState hook instead.
+      //
+      // To force a re-render, we call forceUpdate({inst}). That works because the
+      // new object always fails an equality check.
+
+      var _useState = useState({
+          inst: {
+            value: value,
+            getSnapshot: getSnapshot,
+          },
+        }),
+        inst = _useState[0].inst,
+        forceUpdate = _useState[1]; // Track the latest getSnapshot function with a ref. This needs to be updated
+      // in the layout phase so we can access it during the tearing check that
+      // happens on subscribe.
+
+      useLayoutEffect(
+        function () {
+          inst.value = value;
+          inst.getSnapshot = getSnapshot; // Whenever getSnapshot or subscribe changes, we need to check in the
+          // commit phase if there was an interleaved mutation. In concurrent mode
+          // this can happen all the time, but even in synchronous mode, an earlier
+          // effect may have mutated the store.
+
+          if (checkIfSnapshotChanged(inst)) {
+            // Force a re-render.
+            forceUpdate({
+              inst: inst,
+            });
+          }
+        },
+        [subscribe, value, getSnapshot]
+      );
+      useEffect(
+        function () {
+          // Check for changes right before subscribing. Subsequent changes will be
+          // detected in the subscription handler.
+          if (checkIfSnapshotChanged(inst)) {
+            // Force a re-render.
+            forceUpdate({
+              inst: inst,
+            });
+          }
+
+          var handleStoreChange = function () {
+            // TODO: Because there is no cross-renderer API for batching updates, it's
+            // up to the consumer of this library to wrap their subscription event
+            // with unstable_batchedUpdates. Should we try to detect when this isn't
+            // the case and print a warning in development?
+            // The store changed. Check if the snapshot changed since the last time we
+            // read from the store.
+            if (checkIfSnapshotChanged(inst)) {
+              // Force a re-render.
+              forceUpdate({
+                inst: inst,
+              });
+            }
+          }; // Subscribe to the store and return a clean-up function.
+
+          return subscribe(handleStoreChange);
+        },
+        [subscribe]
+      );
+      useDebugValue(value);
+      return value;
+    }
+
+    function checkIfSnapshotChanged(inst) {
+      var latestGetSnapshot = inst.getSnapshot;
+      var prevValue = inst.value;
+
+      try {
+        var nextValue = latestGetSnapshot();
+        return !objectIs(prevValue, nextValue);
+      } catch (error) {
+        return true;
+      }
+    }
+
+    function useSyncExternalStore$1(subscribe, getSnapshot, getServerSnapshot) {
+      // Note: The shim does not use getServerSnapshot, because pre-18 versions of
+      // React do not expose a way to check if we're hydrating. So users of the shim
+      // will need to track that themselves and return the correct value
+      // from `getSnapshot`.
+      return getSnapshot();
+    }
+
+    var canUseDOM = !!(
+      typeof window !== 'undefined' &&
+      typeof window.document !== 'undefined' &&
+      typeof window.document.createElement !== 'undefined'
+    );
+
+    var isServerEnvironment = !canUseDOM;
+
+    var shim = isServerEnvironment ? useSyncExternalStore$1 : useSyncExternalStore;
+    var useSyncExternalStore$2 = React.useSyncExternalStore !== undefined ? React.useSyncExternalStore : shim;
+
+    useSyncExternalStoreShim_development.useSyncExternalStore = useSyncExternalStore$2;
+    /* global __REACT_DEVTOOLS_GLOBAL_HOOK__ */
+    if (
+      typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== 'undefined' &&
+      typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop === 'function'
+    ) {
+      __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(new Error());
+    }
+  })();
+}
+
+(function (module) {
+  {
+    module.exports = useSyncExternalStoreShim_development;
+  }
+})(shim);
+
+var withSelectorExports = {};
+var withSelector = {
+  get exports() {
+    return withSelectorExports;
+  },
+  set exports(v) {
+    withSelectorExports = v;
+  },
+};
+
+var withSelector_development = {};
+
+/**
+ * @license React
+ * use-sync-external-store-shim/with-selector.development.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+{
+  (function () {
+    /* global __REACT_DEVTOOLS_GLOBAL_HOOK__ */
+    if (
+      typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== 'undefined' &&
+      typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === 'function'
+    ) {
+      __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
+    }
+    var React = reactExports;
+    var shim = shimExports;
+
+    /**
+     * inlined Object.is polyfill to avoid requiring consumers ship their own
+     * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is
+     */
+    function is(x, y) {
+      return (
+        (x === y && (x !== 0 || 1 / x === 1 / y)) || (x !== x && y !== y) // eslint-disable-line no-self-compare
+      );
+    }
+
+    var objectIs = typeof Object.is === 'function' ? Object.is : is;
+
+    var useSyncExternalStore = shim.useSyncExternalStore;
+
+    // for CommonJS interop.
+
+    var useRef = React.useRef,
+      useEffect = React.useEffect,
+      useMemo = React.useMemo,
+      useDebugValue = React.useDebugValue; // Same as useSyncExternalStore, but supports selector and isEqual arguments.
+
+    function useSyncExternalStoreWithSelector(subscribe, getSnapshot, getServerSnapshot, selector, isEqual) {
+      // Use this to track the rendered snapshot.
+      var instRef = useRef(null);
+      var inst;
+
+      if (instRef.current === null) {
+        inst = {
+          hasValue: false,
+          value: null,
+        };
+        instRef.current = inst;
+      } else {
+        inst = instRef.current;
+      }
+
+      var _useMemo = useMemo(
+          function () {
+            // Track the memoized state using closure variables that are local to this
+            // memoized instance of a getSnapshot function. Intentionally not using a
+            // useRef hook, because that state would be shared across all concurrent
+            // copies of the hook/component.
+            var hasMemo = false;
+            var memoizedSnapshot;
+            var memoizedSelection;
+
+            var memoizedSelector = function (nextSnapshot) {
+              if (!hasMemo) {
+                // The first time the hook is called, there is no memoized result.
+                hasMemo = true;
+                memoizedSnapshot = nextSnapshot;
+
+                var _nextSelection = selector(nextSnapshot);
+
+                if (isEqual !== undefined) {
+                  // Even if the selector has changed, the currently rendered selection
+                  // may be equal to the new selection. We should attempt to reuse the
+                  // current value if possible, to preserve downstream memoizations.
+                  if (inst.hasValue) {
+                    var currentSelection = inst.value;
+
+                    if (isEqual(currentSelection, _nextSelection)) {
+                      memoizedSelection = currentSelection;
+                      return currentSelection;
+                    }
+                  }
+                }
+
+                memoizedSelection = _nextSelection;
+                return _nextSelection;
+              } // We may be able to reuse the previous invocation's result.
+
+              // We may be able to reuse the previous invocation's result.
+              var prevSnapshot = memoizedSnapshot;
+              var prevSelection = memoizedSelection;
+
+              if (objectIs(prevSnapshot, nextSnapshot)) {
+                // The snapshot is the same as last time. Reuse the previous selection.
+                return prevSelection;
+              } // The snapshot has changed, so we need to compute a new selection.
+
+              // The snapshot has changed, so we need to compute a new selection.
+              var nextSelection = selector(nextSnapshot); // If a custom isEqual function is provided, use that to check if the data
+              // has changed. If it hasn't, return the previous selection. That signals
+              // to React that the selections are conceptually equal, and we can bail
+              // out of rendering.
+
+              // If a custom isEqual function is provided, use that to check if the data
+              // has changed. If it hasn't, return the previous selection. That signals
+              // to React that the selections are conceptually equal, and we can bail
+              // out of rendering.
+              if (isEqual !== undefined && isEqual(prevSelection, nextSelection)) {
+                return prevSelection;
+              }
+
+              memoizedSnapshot = nextSnapshot;
+              memoizedSelection = nextSelection;
+              return nextSelection;
+            }; // Assigning this to a constant so that Flow knows it can't change.
+
+            // Assigning this to a constant so that Flow knows it can't change.
+            var maybeGetServerSnapshot = getServerSnapshot === undefined ? null : getServerSnapshot;
+
+            var getSnapshotWithSelector = function () {
+              return memoizedSelector(getSnapshot());
+            };
+
+            var getServerSnapshotWithSelector =
+              maybeGetServerSnapshot === null
+                ? undefined
+                : function () {
+                    return memoizedSelector(maybeGetServerSnapshot());
+                  };
+            return [getSnapshotWithSelector, getServerSnapshotWithSelector];
+          },
+          [getSnapshot, getServerSnapshot, selector, isEqual]
+        ),
+        getSelection = _useMemo[0],
+        getServerSelection = _useMemo[1];
+
+      var value = useSyncExternalStore(subscribe, getSelection, getServerSelection);
+      useEffect(
+        function () {
+          inst.hasValue = true;
+          inst.value = value;
+        },
+        [value]
+      );
+      useDebugValue(value);
+      return value;
+    }
+
+    withSelector_development.useSyncExternalStoreWithSelector = useSyncExternalStoreWithSelector;
+    /* global __REACT_DEVTOOLS_GLOBAL_HOOK__ */
+    if (
+      typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== 'undefined' &&
+      typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop === 'function'
+    ) {
+      __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(new Error());
+    }
+  })();
+}
+
+(function (module) {
+  {
+    module.exports = withSelector_development;
+  }
+})(withSelector);
+
+// Default to a dummy "batch" implementation that just runs the callback
+function defaultNoopBatch(callback) {
+  callback();
+}
+
+let batch = defaultNoopBatch; // Allow injecting another batching function later
+
+const setBatch = (newBatch) => (batch = newBatch); // Supply a getter just to skip dealing with ESM bindings
+
+const getBatch = () => batch;
+
+const ReactReduxContext = /*#__PURE__*/ reactExports.createContext(null);
+
+{
+  ReactReduxContext.displayName = 'ReactRedux';
+}
+
+/**
+ * A hook to access the value of the `ReactReduxContext`. This is a low-level
+ * hook that you should usually not need to call directly.
+ *
+ * @returns {any} the value of the `ReactReduxContext`
+ *
+ * @example
+ *
+ * import React from 'react'
+ * import { useReduxContext } from 'react-redux'
+ *
+ * export const CounterComponent = () => {
+ *   const { store } = useReduxContext()
+ *   return <div>{store.getState()}</div>
+ * }
+ */
+function useReduxContext() {
+  const contextValue = reactExports.useContext(ReactReduxContext);
+
+  if (!contextValue) {
+    throw new Error('could not find react-redux context value; please ensure the component is wrapped in a <Provider>');
+  }
+
+  return contextValue;
+}
+
+const notInitialized = () => {
+  throw new Error('uSES not initialized!');
+};
+
+let useSyncExternalStoreWithSelector = notInitialized;
+const initializeUseSelector = (fn) => {
+  useSyncExternalStoreWithSelector = fn;
+};
+
+const refEquality = (a, b) => a === b;
+/**
+ * Hook factory, which creates a `useSelector` hook bound to a given context.
+ *
+ * @param {React.Context} [context=ReactReduxContext] Context passed to your `<Provider>`.
+ * @returns {Function} A `useSelector` hook bound to the specified context.
+ */
+
+function createSelectorHook(context = ReactReduxContext) {
+  const useReduxContext$1 = context === ReactReduxContext ? useReduxContext : () => reactExports.useContext(context);
+  return function useSelector(selector, equalityFn = refEquality) {
+    {
+      if (!selector) {
+        throw new Error(`You must pass a selector to useSelector`);
+      }
+
+      if (typeof selector !== 'function') {
+        throw new Error(`You must pass a function as a selector to useSelector`);
+      }
+
+      if (typeof equalityFn !== 'function') {
+        throw new Error(`You must pass a function as an equality function to useSelector`);
+      }
+    }
+
+    const { store, subscription, getServerState } = useReduxContext$1();
+    const selectedState = useSyncExternalStoreWithSelector(
+      subscription.addNestedSub,
+      store.getState,
+      getServerState || store.getState,
+      selector,
+      equalityFn
+    );
+    reactExports.useDebugValue(selectedState);
+    return selectedState;
+  };
+}
+/**
+ * A hook to access the redux store's state. This hook takes a selector function
+ * as an argument. The selector is called with the store state.
+ *
+ * This hook takes an optional equality comparison function as the second parameter
+ * that allows you to customize the way the selected state is compared to determine
+ * whether the component needs to be re-rendered.
+ *
+ * @param {Function} selector the selector function
+ * @param {Function=} equalityFn the function that will be used to determine equality
+ *
+ * @returns {any} the selected state
+ *
+ * @example
+ *
+ * import React from 'react'
+ * import { useSelector } from 'react-redux'
+ *
+ * export const CounterComponent = () => {
+ *   const counter = useSelector(state => state.counter)
+ *   return <div>{counter}</div>
+ * }
+ */
+
+const useSelector = /*#__PURE__*/ createSelectorHook();
+
+function _extends() {
+  _extends = Object.assign
+    ? Object.assign.bind()
+    : function (target) {
+        for (var i = 1; i < arguments.length; i++) {
+          var source = arguments[i];
+          for (var key in source) {
+            if (Object.prototype.hasOwnProperty.call(source, key)) {
+              target[key] = source[key];
+            }
+          }
+        }
+        return target;
+      };
+  return _extends.apply(this, arguments);
+}
+
+function _objectWithoutPropertiesLoose(source, excluded) {
+  if (source == null) return {};
+  var target = {};
+  var sourceKeys = Object.keys(source);
+  var key, i;
+  for (i = 0; i < sourceKeys.length; i++) {
+    key = sourceKeys[i];
+    if (excluded.indexOf(key) >= 0) continue;
+    target[key] = source[key];
+  }
+  return target;
+}
+
+var reactIsExports$1 = {};
+var reactIs$2 = {
+  get exports() {
+    return reactIsExports$1;
+  },
+  set exports(v) {
+    reactIsExports$1 = v;
+  },
+};
+
+var reactIs_development$1 = {};
+
+/** @license React v16.13.1
+ * react-is.development.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+{
+  (function () {
+    // The Symbol used to tag the ReactElement-like types. If there is no native Symbol
+    // nor polyfill, then a plain number is used for performance.
+    var hasSymbol = typeof Symbol === 'function' && Symbol.for;
+    var REACT_ELEMENT_TYPE = hasSymbol ? Symbol.for('react.element') : 0xeac7;
+    var REACT_PORTAL_TYPE = hasSymbol ? Symbol.for('react.portal') : 0xeaca;
+    var REACT_FRAGMENT_TYPE = hasSymbol ? Symbol.for('react.fragment') : 0xeacb;
+    var REACT_STRICT_MODE_TYPE = hasSymbol ? Symbol.for('react.strict_mode') : 0xeacc;
+    var REACT_PROFILER_TYPE = hasSymbol ? Symbol.for('react.profiler') : 0xead2;
+    var REACT_PROVIDER_TYPE = hasSymbol ? Symbol.for('react.provider') : 0xeacd;
+    var REACT_CONTEXT_TYPE = hasSymbol ? Symbol.for('react.context') : 0xeace; // TODO: We don't use AsyncMode or ConcurrentMode anymore. They were temporary
+    // (unstable) APIs that have been removed. Can we remove the symbols?
+
+    var REACT_ASYNC_MODE_TYPE = hasSymbol ? Symbol.for('react.async_mode') : 0xeacf;
+    var REACT_CONCURRENT_MODE_TYPE = hasSymbol ? Symbol.for('react.concurrent_mode') : 0xeacf;
+    var REACT_FORWARD_REF_TYPE = hasSymbol ? Symbol.for('react.forward_ref') : 0xead0;
+    var REACT_SUSPENSE_TYPE = hasSymbol ? Symbol.for('react.suspense') : 0xead1;
+    var REACT_SUSPENSE_LIST_TYPE = hasSymbol ? Symbol.for('react.suspense_list') : 0xead8;
+    var REACT_MEMO_TYPE = hasSymbol ? Symbol.for('react.memo') : 0xead3;
+    var REACT_LAZY_TYPE = hasSymbol ? Symbol.for('react.lazy') : 0xead4;
+    var REACT_BLOCK_TYPE = hasSymbol ? Symbol.for('react.block') : 0xead9;
+    var REACT_FUNDAMENTAL_TYPE = hasSymbol ? Symbol.for('react.fundamental') : 0xead5;
+    var REACT_RESPONDER_TYPE = hasSymbol ? Symbol.for('react.responder') : 0xead6;
+    var REACT_SCOPE_TYPE = hasSymbol ? Symbol.for('react.scope') : 0xead7;
+
+    function isValidElementType(type) {
+      return (
+        typeof type === 'string' ||
+        typeof type === 'function' || // Note: its typeof might be other than 'symbol' or 'number' if it's a polyfill.
+        type === REACT_FRAGMENT_TYPE ||
+        type === REACT_CONCURRENT_MODE_TYPE ||
+        type === REACT_PROFILER_TYPE ||
+        type === REACT_STRICT_MODE_TYPE ||
+        type === REACT_SUSPENSE_TYPE ||
+        type === REACT_SUSPENSE_LIST_TYPE ||
+        (typeof type === 'object' &&
+          type !== null &&
+          (type.$$typeof === REACT_LAZY_TYPE ||
+            type.$$typeof === REACT_MEMO_TYPE ||
+            type.$$typeof === REACT_PROVIDER_TYPE ||
+            type.$$typeof === REACT_CONTEXT_TYPE ||
+            type.$$typeof === REACT_FORWARD_REF_TYPE ||
+            type.$$typeof === REACT_FUNDAMENTAL_TYPE ||
+            type.$$typeof === REACT_RESPONDER_TYPE ||
+            type.$$typeof === REACT_SCOPE_TYPE ||
+            type.$$typeof === REACT_BLOCK_TYPE))
+      );
+    }
+
+    function typeOf(object) {
+      if (typeof object === 'object' && object !== null) {
+        var $$typeof = object.$$typeof;
+
+        switch ($$typeof) {
+          case REACT_ELEMENT_TYPE:
+            var type = object.type;
+
+            switch (type) {
+              case REACT_ASYNC_MODE_TYPE:
+              case REACT_CONCURRENT_MODE_TYPE:
+              case REACT_FRAGMENT_TYPE:
+              case REACT_PROFILER_TYPE:
+              case REACT_STRICT_MODE_TYPE:
+              case REACT_SUSPENSE_TYPE:
+                return type;
+
+              default:
+                var $$typeofType = type && type.$$typeof;
+
+                switch ($$typeofType) {
+                  case REACT_CONTEXT_TYPE:
+                  case REACT_FORWARD_REF_TYPE:
+                  case REACT_LAZY_TYPE:
+                  case REACT_MEMO_TYPE:
+                  case REACT_PROVIDER_TYPE:
+                    return $$typeofType;
+
+                  default:
+                    return $$typeof;
+                }
+            }
+
+          case REACT_PORTAL_TYPE:
+            return $$typeof;
+        }
+      }
+
+      return undefined;
+    } // AsyncMode is deprecated along with isAsyncMode
+
+    var AsyncMode = REACT_ASYNC_MODE_TYPE;
+    var ConcurrentMode = REACT_CONCURRENT_MODE_TYPE;
+    var ContextConsumer = REACT_CONTEXT_TYPE;
+    var ContextProvider = REACT_PROVIDER_TYPE;
+    var Element = REACT_ELEMENT_TYPE;
+    var ForwardRef = REACT_FORWARD_REF_TYPE;
+    var Fragment = REACT_FRAGMENT_TYPE;
+    var Lazy = REACT_LAZY_TYPE;
+    var Memo = REACT_MEMO_TYPE;
+    var Portal = REACT_PORTAL_TYPE;
+    var Profiler = REACT_PROFILER_TYPE;
+    var StrictMode = REACT_STRICT_MODE_TYPE;
+    var Suspense = REACT_SUSPENSE_TYPE;
+    var hasWarnedAboutDeprecatedIsAsyncMode = false; // AsyncMode should be deprecated
+
+    function isAsyncMode(object) {
+      {
+        if (!hasWarnedAboutDeprecatedIsAsyncMode) {
+          hasWarnedAboutDeprecatedIsAsyncMode = true; // Using console['warn'] to evade Babel and ESLint
+
+          console['warn'](
+            'The ReactIs.isAsyncMode() alias has been deprecated, ' +
+              'and will be removed in React 17+. Update your code to use ' +
+              'ReactIs.isConcurrentMode() instead. It has the exact same API.'
+          );
+        }
+      }
+
+      return isConcurrentMode(object) || typeOf(object) === REACT_ASYNC_MODE_TYPE;
+    }
+    function isConcurrentMode(object) {
+      return typeOf(object) === REACT_CONCURRENT_MODE_TYPE;
+    }
+    function isContextConsumer(object) {
+      return typeOf(object) === REACT_CONTEXT_TYPE;
+    }
+    function isContextProvider(object) {
+      return typeOf(object) === REACT_PROVIDER_TYPE;
+    }
+    function isElement(object) {
+      return typeof object === 'object' && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
+    }
+    function isForwardRef(object) {
+      return typeOf(object) === REACT_FORWARD_REF_TYPE;
+    }
+    function isFragment(object) {
+      return typeOf(object) === REACT_FRAGMENT_TYPE;
+    }
+    function isLazy(object) {
+      return typeOf(object) === REACT_LAZY_TYPE;
+    }
+    function isMemo(object) {
+      return typeOf(object) === REACT_MEMO_TYPE;
+    }
+    function isPortal(object) {
+      return typeOf(object) === REACT_PORTAL_TYPE;
+    }
+    function isProfiler(object) {
+      return typeOf(object) === REACT_PROFILER_TYPE;
+    }
+    function isStrictMode(object) {
+      return typeOf(object) === REACT_STRICT_MODE_TYPE;
+    }
+    function isSuspense(object) {
+      return typeOf(object) === REACT_SUSPENSE_TYPE;
+    }
+
+    reactIs_development$1.AsyncMode = AsyncMode;
+    reactIs_development$1.ConcurrentMode = ConcurrentMode;
+    reactIs_development$1.ContextConsumer = ContextConsumer;
+    reactIs_development$1.ContextProvider = ContextProvider;
+    reactIs_development$1.Element = Element;
+    reactIs_development$1.ForwardRef = ForwardRef;
+    reactIs_development$1.Fragment = Fragment;
+    reactIs_development$1.Lazy = Lazy;
+    reactIs_development$1.Memo = Memo;
+    reactIs_development$1.Portal = Portal;
+    reactIs_development$1.Profiler = Profiler;
+    reactIs_development$1.StrictMode = StrictMode;
+    reactIs_development$1.Suspense = Suspense;
+    reactIs_development$1.isAsyncMode = isAsyncMode;
+    reactIs_development$1.isConcurrentMode = isConcurrentMode;
+    reactIs_development$1.isContextConsumer = isContextConsumer;
+    reactIs_development$1.isContextProvider = isContextProvider;
+    reactIs_development$1.isElement = isElement;
+    reactIs_development$1.isForwardRef = isForwardRef;
+    reactIs_development$1.isFragment = isFragment;
+    reactIs_development$1.isLazy = isLazy;
+    reactIs_development$1.isMemo = isMemo;
+    reactIs_development$1.isPortal = isPortal;
+    reactIs_development$1.isProfiler = isProfiler;
+    reactIs_development$1.isStrictMode = isStrictMode;
+    reactIs_development$1.isSuspense = isSuspense;
+    reactIs_development$1.isValidElementType = isValidElementType;
+    reactIs_development$1.typeOf = typeOf;
+  })();
+}
+
+(function (module) {
+  {
+    module.exports = reactIs_development$1;
+  }
+})(reactIs$2);
+
+var reactIs$1 = reactIsExports$1;
+var FORWARD_REF_STATICS = {
+  $$typeof: true,
+  render: true,
+  defaultProps: true,
+  displayName: true,
+  propTypes: true,
+};
+var MEMO_STATICS = {
+  $$typeof: true,
+  compare: true,
+  defaultProps: true,
+  displayName: true,
+  propTypes: true,
+  type: true,
+};
+var TYPE_STATICS = {};
+TYPE_STATICS[reactIs$1.ForwardRef] = FORWARD_REF_STATICS;
+TYPE_STATICS[reactIs$1.Memo] = MEMO_STATICS;
+
+var reactIsExports = {};
+var reactIs = {
+  get exports() {
+    return reactIsExports;
+  },
+  set exports(v) {
+    reactIsExports = v;
+  },
+};
+
+var reactIs_development = {};
+
+/**
+ * @license React
+ * react-is.development.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+{
+  (function () {
+    // ATTENTION
+    // When adding new symbols to this file,
+    // Please consider also adding to 'react-devtools-shared/src/backend/ReactSymbols'
+    // The Symbol used to tag the ReactElement-like types.
+    var REACT_ELEMENT_TYPE = Symbol.for('react.element');
+    var REACT_PORTAL_TYPE = Symbol.for('react.portal');
+    var REACT_FRAGMENT_TYPE = Symbol.for('react.fragment');
+    var REACT_STRICT_MODE_TYPE = Symbol.for('react.strict_mode');
+    var REACT_PROFILER_TYPE = Symbol.for('react.profiler');
+    var REACT_PROVIDER_TYPE = Symbol.for('react.provider');
+    var REACT_CONTEXT_TYPE = Symbol.for('react.context');
+    var REACT_SERVER_CONTEXT_TYPE = Symbol.for('react.server_context');
+    var REACT_FORWARD_REF_TYPE = Symbol.for('react.forward_ref');
+    var REACT_SUSPENSE_TYPE = Symbol.for('react.suspense');
+    var REACT_SUSPENSE_LIST_TYPE = Symbol.for('react.suspense_list');
+    var REACT_MEMO_TYPE = Symbol.for('react.memo');
+    var REACT_LAZY_TYPE = Symbol.for('react.lazy');
+    var REACT_OFFSCREEN_TYPE = Symbol.for('react.offscreen');
+
+    // -----------------------------------------------------------------------------
+
+    var enableScopeAPI = false; // Experimental Create Event Handle API.
+    var enableCacheElement = false;
+    var enableTransitionTracing = false; // No known bugs, but needs performance testing
+
+    var enableLegacyHidden = false; // Enables unstable_avoidThisFallback feature in Fiber
+    // stuff. Intended to enable React core members to more easily debug scheduling
+    // issues in DEV builds.
+
+    var enableDebugTracing = false; // Track which Fiber(s) schedule render work.
+
+    var REACT_MODULE_REFERENCE;
+
+    {
+      REACT_MODULE_REFERENCE = Symbol.for('react.module.reference');
+    }
+
+    function isValidElementType(type) {
+      if (typeof type === 'string' || typeof type === 'function') {
+        return true;
+      } // Note: typeof might be other than 'symbol' or 'number' (e.g. if it's a polyfill).
+
+      if (
+        type === REACT_FRAGMENT_TYPE ||
+        type === REACT_PROFILER_TYPE ||
+        enableDebugTracing ||
+        type === REACT_STRICT_MODE_TYPE ||
+        type === REACT_SUSPENSE_TYPE ||
+        type === REACT_SUSPENSE_LIST_TYPE ||
+        enableLegacyHidden ||
+        type === REACT_OFFSCREEN_TYPE ||
+        enableScopeAPI ||
+        enableCacheElement ||
+        enableTransitionTracing
+      ) {
+        return true;
+      }
+
+      if (typeof type === 'object' && type !== null) {
+        if (
+          type.$$typeof === REACT_LAZY_TYPE ||
+          type.$$typeof === REACT_MEMO_TYPE ||
+          type.$$typeof === REACT_PROVIDER_TYPE ||
+          type.$$typeof === REACT_CONTEXT_TYPE ||
+          type.$$typeof === REACT_FORWARD_REF_TYPE || // This needs to include all possible module reference object
+          // types supported by any Flight configuration anywhere since
+          // we don't know which Flight build this will end up being used
+          // with.
+          type.$$typeof === REACT_MODULE_REFERENCE ||
+          type.getModuleId !== undefined
+        ) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function typeOf(object) {
+      if (typeof object === 'object' && object !== null) {
+        var $$typeof = object.$$typeof;
+
+        switch ($$typeof) {
+          case REACT_ELEMENT_TYPE:
+            var type = object.type;
+
+            switch (type) {
+              case REACT_FRAGMENT_TYPE:
+              case REACT_PROFILER_TYPE:
+              case REACT_STRICT_MODE_TYPE:
+              case REACT_SUSPENSE_TYPE:
+              case REACT_SUSPENSE_LIST_TYPE:
+                return type;
+
+              default:
+                var $$typeofType = type && type.$$typeof;
+
+                switch ($$typeofType) {
+                  case REACT_SERVER_CONTEXT_TYPE:
+                  case REACT_CONTEXT_TYPE:
+                  case REACT_FORWARD_REF_TYPE:
+                  case REACT_LAZY_TYPE:
+                  case REACT_MEMO_TYPE:
+                  case REACT_PROVIDER_TYPE:
+                    return $$typeofType;
+
+                  default:
+                    return $$typeof;
+                }
+            }
+
+          case REACT_PORTAL_TYPE:
+            return $$typeof;
+        }
+      }
+
+      return undefined;
+    }
+    var ContextConsumer = REACT_CONTEXT_TYPE;
+    var ContextProvider = REACT_PROVIDER_TYPE;
+    var Element = REACT_ELEMENT_TYPE;
+    var ForwardRef = REACT_FORWARD_REF_TYPE;
+    var Fragment = REACT_FRAGMENT_TYPE;
+    var Lazy = REACT_LAZY_TYPE;
+    var Memo = REACT_MEMO_TYPE;
+    var Portal = REACT_PORTAL_TYPE;
+    var Profiler = REACT_PROFILER_TYPE;
+    var StrictMode = REACT_STRICT_MODE_TYPE;
+    var Suspense = REACT_SUSPENSE_TYPE;
+    var SuspenseList = REACT_SUSPENSE_LIST_TYPE;
+    var hasWarnedAboutDeprecatedIsAsyncMode = false;
+    var hasWarnedAboutDeprecatedIsConcurrentMode = false; // AsyncMode should be deprecated
+
+    function isAsyncMode(object) {
+      {
+        if (!hasWarnedAboutDeprecatedIsAsyncMode) {
+          hasWarnedAboutDeprecatedIsAsyncMode = true; // Using console['warn'] to evade Babel and ESLint
+
+          console['warn'](
+            'The ReactIs.isAsyncMode() alias has been deprecated, ' + 'and will be removed in React 18+.'
+          );
+        }
+      }
+
+      return false;
+    }
+    function isConcurrentMode(object) {
+      {
+        if (!hasWarnedAboutDeprecatedIsConcurrentMode) {
+          hasWarnedAboutDeprecatedIsConcurrentMode = true; // Using console['warn'] to evade Babel and ESLint
+
+          console['warn'](
+            'The ReactIs.isConcurrentMode() alias has been deprecated, ' + 'and will be removed in React 18+.'
+          );
+        }
+      }
+
+      return false;
+    }
+    function isContextConsumer(object) {
+      return typeOf(object) === REACT_CONTEXT_TYPE;
+    }
+    function isContextProvider(object) {
+      return typeOf(object) === REACT_PROVIDER_TYPE;
+    }
+    function isElement(object) {
+      return typeof object === 'object' && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
+    }
+    function isForwardRef(object) {
+      return typeOf(object) === REACT_FORWARD_REF_TYPE;
+    }
+    function isFragment(object) {
+      return typeOf(object) === REACT_FRAGMENT_TYPE;
+    }
+    function isLazy(object) {
+      return typeOf(object) === REACT_LAZY_TYPE;
+    }
+    function isMemo(object) {
+      return typeOf(object) === REACT_MEMO_TYPE;
+    }
+    function isPortal(object) {
+      return typeOf(object) === REACT_PORTAL_TYPE;
+    }
+    function isProfiler(object) {
+      return typeOf(object) === REACT_PROFILER_TYPE;
+    }
+    function isStrictMode(object) {
+      return typeOf(object) === REACT_STRICT_MODE_TYPE;
+    }
+    function isSuspense(object) {
+      return typeOf(object) === REACT_SUSPENSE_TYPE;
+    }
+    function isSuspenseList(object) {
+      return typeOf(object) === REACT_SUSPENSE_LIST_TYPE;
+    }
+
+    reactIs_development.ContextConsumer = ContextConsumer;
+    reactIs_development.ContextProvider = ContextProvider;
+    reactIs_development.Element = Element;
+    reactIs_development.ForwardRef = ForwardRef;
+    reactIs_development.Fragment = Fragment;
+    reactIs_development.Lazy = Lazy;
+    reactIs_development.Memo = Memo;
+    reactIs_development.Portal = Portal;
+    reactIs_development.Profiler = Profiler;
+    reactIs_development.StrictMode = StrictMode;
+    reactIs_development.Suspense = Suspense;
+    reactIs_development.SuspenseList = SuspenseList;
+    reactIs_development.isAsyncMode = isAsyncMode;
+    reactIs_development.isConcurrentMode = isConcurrentMode;
+    reactIs_development.isContextConsumer = isContextConsumer;
+    reactIs_development.isContextProvider = isContextProvider;
+    reactIs_development.isElement = isElement;
+    reactIs_development.isForwardRef = isForwardRef;
+    reactIs_development.isFragment = isFragment;
+    reactIs_development.isLazy = isLazy;
+    reactIs_development.isMemo = isMemo;
+    reactIs_development.isPortal = isPortal;
+    reactIs_development.isProfiler = isProfiler;
+    reactIs_development.isStrictMode = isStrictMode;
+    reactIs_development.isSuspense = isSuspense;
+    reactIs_development.isSuspenseList = isSuspenseList;
+    reactIs_development.isValidElementType = isValidElementType;
+    reactIs_development.typeOf = typeOf;
+  })();
+}
+
+(function (module) {
+  {
+    module.exports = reactIs_development;
+  }
+})(reactIs);
+
+// well as nesting subscriptions of descendant components, so that we can ensure the
+// ancestor components re-render before descendants
+
+function createListenerCollection() {
+  const batch = getBatch();
+  let first = null;
+  let last = null;
+  return {
+    clear() {
+      first = null;
+      last = null;
+    },
+
+    notify() {
+      batch(() => {
+        let listener = first;
+
+        while (listener) {
+          listener.callback();
+          listener = listener.next;
+        }
+      });
+    },
+
+    get() {
+      let listeners = [];
+      let listener = first;
+
+      while (listener) {
+        listeners.push(listener);
+        listener = listener.next;
+      }
+
+      return listeners;
+    },
+
+    subscribe(callback) {
+      let isSubscribed = true;
+      let listener = (last = {
+        callback,
+        next: null,
+        prev: last,
+      });
+
+      if (listener.prev) {
+        listener.prev.next = listener;
+      } else {
+        first = listener;
+      }
+
+      return function unsubscribe() {
+        if (!isSubscribed || first === null) return;
+        isSubscribed = false;
+
+        if (listener.next) {
+          listener.next.prev = listener.prev;
+        } else {
+          last = listener.prev;
+        }
+
+        if (listener.prev) {
+          listener.prev.next = listener.next;
+        } else {
+          first = listener.next;
+        }
+      };
+    },
+  };
+}
+
+const nullListeners = {
+  notify() {},
+
+  get: () => [],
+};
+function createSubscription(store, parentSub) {
+  let unsubscribe;
+  let listeners = nullListeners;
+
+  function addNestedSub(listener) {
+    trySubscribe();
+    return listeners.subscribe(listener);
+  }
+
+  function notifyNestedSubs() {
+    listeners.notify();
+  }
+
+  function handleChangeWrapper() {
+    if (subscription.onStateChange) {
+      subscription.onStateChange();
+    }
+  }
+
+  function isSubscribed() {
+    return Boolean(unsubscribe);
+  }
+
+  function trySubscribe() {
+    if (!unsubscribe) {
+      unsubscribe = parentSub ? parentSub.addNestedSub(handleChangeWrapper) : store.subscribe(handleChangeWrapper);
+      listeners = createListenerCollection();
+    }
+  }
+
+  function tryUnsubscribe() {
+    if (unsubscribe) {
+      unsubscribe();
+      unsubscribe = undefined;
+      listeners.clear();
+      listeners = nullListeners;
+    }
+  }
+
+  const subscription = {
+    addNestedSub,
+    notifyNestedSubs,
+    handleChangeWrapper,
+    isSubscribed,
+    trySubscribe,
+    tryUnsubscribe,
+    getListeners: () => listeners,
+  };
+  return subscription;
+}
+
+// To get around it, we can conditionally useEffect on the server (no-op) and
+// useLayoutEffect in the browser. We need useLayoutEffect to ensure the store
+// subscription callback always has the selector from the latest render commit
+// available, otherwise a store update may happen between render and the effect,
+// which may cause missed updates; we also must ensure the store subscription
+// is created synchronously, otherwise a store update may occur before the
+// subscription is created and an inconsistent state may be observed
+// Matches logic in React's `shared/ExecutionEnvironment` file
+
+const canUseDOM = !!(
+  typeof window !== 'undefined' &&
+  typeof window.document !== 'undefined' &&
+  typeof window.document.createElement !== 'undefined'
+);
+const useIsomorphicLayoutEffect = canUseDOM ? reactExports.useLayoutEffect : reactExports.useEffect;
+
+function Provider({ store, context, children, serverState }) {
+  const contextValue = reactExports.useMemo(() => {
+    const subscription = createSubscription(store);
+    return {
+      store,
+      subscription,
+      getServerState: serverState ? () => serverState : undefined,
+    };
+  }, [store, serverState]);
+  const previousState = reactExports.useMemo(() => store.getState(), [store]);
+  useIsomorphicLayoutEffect(() => {
+    const { subscription } = contextValue;
+    subscription.onStateChange = subscription.notifyNestedSubs;
+    subscription.trySubscribe();
+
+    if (previousState !== store.getState()) {
+      subscription.notifyNestedSubs();
+    }
+
+    return () => {
+      subscription.tryUnsubscribe();
+      subscription.onStateChange = undefined;
+    };
+  }, [contextValue, previousState]);
+  const Context = context || ReactReduxContext; // @ts-ignore 'AnyAction' is assignable to the constraint of type 'A', but 'A' could be instantiated with a different subtype
+
+  return /*#__PURE__*/ React.createElement(
+    Context.Provider,
+    {
+      value: contextValue,
+    },
+    children
+  );
+}
+
+/**
+ * Hook factory, which creates a `useStore` hook bound to a given context.
+ *
+ * @param {React.Context} [context=ReactReduxContext] Context passed to your `<Provider>`.
+ * @returns {Function} A `useStore` hook bound to the specified context.
+ */
+
+function createStoreHook(context = ReactReduxContext) {
+  const useReduxContext$1 = context === ReactReduxContext ? useReduxContext : () => reactExports.useContext(context); // @ts-ignore
+  return function useStore() {
+    const { store } = useReduxContext$1(); // @ts-ignore
+
+    return store;
+  };
+}
+/**
+ * A hook to access the redux store.
+ *
+ * @returns {any} the redux store
+ *
+ * @example
+ *
+ * import React from 'react'
+ * import { useStore } from 'react-redux'
+ *
+ * export const ExampleComponent = () => {
+ *   const store = useStore()
+ *   return <div>{store.getState()}</div>
+ * }
+ */
+
+const useStore = /*#__PURE__*/ createStoreHook();
+
+/**
+ * Hook factory, which creates a `useDispatch` hook bound to a given context.
+ *
+ * @param {React.Context} [context=ReactReduxContext] Context passed to your `<Provider>`.
+ * @returns {Function} A `useDispatch` hook bound to the specified context.
+ */
+
+function createDispatchHook(context = ReactReduxContext) {
+  const useStore$1 = context === ReactReduxContext ? useStore : createStoreHook(context); // @ts-ignore
+  return function useDispatch() {
+    const store = useStore$1(); // @ts-ignore
+
+    return store.dispatch;
+  };
+}
+/**
+ * A hook to access the redux `dispatch` function.
+ *
+ * @returns {any|function} redux store's `dispatch` function
+ *
+ * @example
+ *
+ * import React, { useCallback } from 'react'
+ * import { useDispatch } from 'react-redux'
+ *
+ * export const CounterComponent = ({ value }) => {
+ *   const dispatch = useDispatch()
+ *   const increaseCounter = useCallback(() => dispatch({ type: 'increase-counter' }), [])
+ *   return (
+ *     <div>
+ *       <span>{value}</span>
+ *       <button onClick={increaseCounter}>Increase counter</button>
+ *     </div>
+ *   )
+ * }
+ */
+
+const useDispatch = /*#__PURE__*/ createDispatchHook();
+
+// The primary entry point assumes we're working with standard ReactDOM/RN, but
+initializeUseSelector(withSelectorExports.useSyncExternalStoreWithSelector);
+// with standard React renderers (ReactDOM, React Native)
+
+setBatch(reactDomExports.unstable_batchedUpdates);
+
 function styleInject(css, ref) {
   if (ref === void 0) ref = {};
   var insertAt = ref.insertAt;
@@ -37227,26 +38619,50 @@ function styleInject(css, ref) {
   }
 }
 
-var css_248z$3 =
-  '.Wrapper-module_container__eeHw7 {\n  user-select: none;\n  max-width: 400px;\n  margin: 40px auto; }\n\n.Wrapper-module_fifteen__fuN6d {\n  width: 100%;\n  padding-bottom: 100%;\n  background-color: #82302a;\n  margin-bottom: 40px;\n  position: relative; }\n\n.Wrapper-module_shuffle__GaIdF {\n  display: block;\n  margin: 0 auto;\n  border: none;\n  padding: 0;\n  width: 150px;\n  height: 40px;\n  background-color: #000;\n  color: #fff;\n  font-size: 14px;\n  cursor: pointer; }\n  .Wrapper-module_shuffle__GaIdF:hover {\n    background-color: #333; }\n';
-var styles$2 = {
-  container: 'Wrapper-module_container__eeHw7',
-  fifteen: 'Wrapper-module_fifteen__fuN6d',
-  shuffle: 'Wrapper-module_shuffle__GaIdF',
+var css_248z$4 =
+  '.ShuffleButton-module_shuffle__tUhUr {\n  display: block;\n  margin: 0 auto;\n  border: none;\n  padding: 0;\n  width: 150px;\n  height: 40px;\n  background-color: #000;\n  color: #fff;\n  font-size: 14px;\n  cursor: pointer; }\n  .ShuffleButton-module_shuffle__tUhUr:hover {\n    background-color: #333; }\n';
+var styles$3 = { shuffle: 'ShuffleButton-module_shuffle__tUhUr' };
+styleInject(css_248z$4);
+
+var GameActionTypes;
+(function (GameActionTypes) {
+  GameActionTypes['onShuffle'] = 'CLICK_SHUFFLE';
+  GameActionTypes['onMove'] = 'CLICK_MOVE';
+  GameActionTypes['onUndo'] = 'CLICK_UNDO';
+})(GameActionTypes || (GameActionTypes = {}));
+var GameTypes;
+(function (GameTypes) {
+  GameTypes['shuffle'] = 'GAME_ACTION_SHUFFLE';
+  GameTypes['move'] = 'GAME_ACTION_MOVE';
+  GameTypes['undo'] = 'GAME_ACTION_UNDO';
+})(GameTypes || (GameTypes = {}));
+
+const onShuffleAction = () => ({ type: GameActionTypes.onShuffle });
+const onMoveAction = (index) => ({ type: GameActionTypes.onMove, payload: index });
+const onUndoAction = () => ({ type: GameActionTypes.onUndo });
+
+const ShuffleButton = () => {
+  const dispatch = useDispatch();
+  const onShuffle = () => dispatch(onShuffleAction());
+  return jsxRuntimeExports.jsx('button', {
+    type: 'button',
+    className: styles$3.shuffle,
+    onClick: onShuffle,
+    children: 'Shuffle to start',
+  });
 };
+
+var css_248z$3 =
+  '.Wrapper-module_container__eeHw7 {\n  user-select: none;\n  max-width: 400px;\n  margin: 40px auto; }\n\n.Wrapper-module_fifteen__fuN6d {\n  width: 100%;\n  padding-bottom: 100%;\n  background-color: #82302a;\n  margin-bottom: 40px;\n  position: relative; }\n';
+var styles$2 = { container: 'Wrapper-module_container__eeHw7', fifteen: 'Wrapper-module_fifteen__fuN6d' };
 styleInject(css_248z$3);
 
-const Wrapper = ({ onShuffle, children }) => {
+const Wrapper = ({ children }) => {
   return jsxRuntimeExports.jsxs('div', {
     className: styles$2.container,
     children: [
       jsxRuntimeExports.jsx('div', { className: styles$2.fifteen, children: children }),
-      jsxRuntimeExports.jsx('button', {
-        type: 'button',
-        className: styles$2.shuffle,
-        onClick: onShuffle,
-        children: 'Shuffle to start',
-      }),
+      jsxRuntimeExports.jsx(ShuffleButton, {}),
     ],
   });
 };
@@ -37257,7 +38673,9 @@ var styles$1 = { button: 'Button-module_button__18Bed', button__circle: 'Button-
 styleInject(css_248z$2);
 
 const shiftPS = 100;
-const Button = ({ children, x, y, isHide, ...rest }) => {
+const Button = ({ children, x, y, isHide, index, ...rest }) => {
+  const dispatch = useDispatch();
+  const onMove = () => dispatch(onMoveAction(index));
   return jsxRuntimeExports.jsx('button', {
     type: 'button',
     className: styles$1.button,
@@ -37265,20 +38683,11 @@ const Button = ({ children, x, y, isHide, ...rest }) => {
       transform: `translate3D(${x * shiftPS}%, ${y * shiftPS}%, 0)`,
       display: isHide ? 'none' : 'static',
     },
+    onClick: onMove,
     ...rest,
     children: jsxRuntimeExports.jsx('span', { className: styles$1.button__circle, children: children }),
   });
 };
-
-var css_248z$1 =
-  ".Steps-module_steps__5VyvB {\n  display: flex;\n  justify-content: center;\n  align-items: center; }\n  .Steps-module_steps__buttons__AiIkv {\n    border: 1px solid #000;\n    border-radius: 100%;\n    width: 50px;\n    height: 50px;\n    background-repeat: no-repeat;\n    background-position: center;\n    background-size: 40px 30px;\n    background-color: #f2f2f2;\n    margin: 0 10px;\n    cursor: pointer; }\n    .Steps-module_steps__buttons__AiIkv:hover {\n      border-color: #999; }\n    .Steps-module_steps__buttons__AiIkv:disabled {\n      border-color: #999;\n      opacity: 0.7;\n      cursor: default; }\n    .Steps-module_steps__buttons_undo__HnAqi {\n      background-image: url(\"data:image/svg+xml,%3C%3Fxml version='1.0' %3F%3E%3Csvg height='16px' id='Layer_1' style='enable-background:new 0 0 16 16;' version='1.1' viewBox='0 0 16 16' width='16px' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'%3E%3Cstyle type='text/css'%3E .cls-1%7Bfill:none;%7D%0A%3C/style%3E%3Cpath d='M12,8c1.2,0,2,0.8,2,2c0,1.2-0.8,2-2,2H9v1h3c1.7,0,3-1.2,3-3c0-1.7-1.3-3-3-3L2.9,7l2-2L4.2,4.3L1,7.5 l3.2,3.2L4.9,10l-2-2L12,8z' id='_x31_6_px_4_'/%3E%3Crect class='cls-1' data-name='&lt;Transparent Rectangle&gt;' height='16' id='_Transparent_Rectangle_' width='16'/%3E%3C/svg%3E\"); }\n    .Steps-module_steps__buttons_redo__v42tZ {\n      background-image: url(\"data:image/svg+xml,%3C%3Fxml version='1.0' %3F%3E%3Csvg height='16px' id='Layer_1' style='enable-background:new 0 0 16 16;' version='1.1' viewBox='0 0 16 16' width='16px' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'%3E%3Cstyle type='text/css'%3E .cls-1%7Bfill:none;%7D%0A%3C/style%3E%3Cpath d='M4,8c-1.2,0-2,0.8-2,2c0,1.2,0.8,2,2,2h3v1H4c-1.7,0-3-1.2-3-3c0-1.7,1.3-3,3-3l9.1,0l-2-2l0.7-0.7 L15,7.5l-3.2,3.2L11.1,10l2-2L4,8z' id='_x31_6_px_3_'/%3E%3Crect class='cls-1' data-name='&lt;Transparent Rectangle&gt;' height='16' id='_Transparent_Rectangle_' width='16'/%3E%3C/svg%3E\"); }\n";
-var styles = {
-  steps: 'Steps-module_steps__5VyvB',
-  steps__buttons: 'Steps-module_steps__buttons__AiIkv',
-  steps__buttons_undo: 'Steps-module_steps__buttons_undo__HnAqi',
-  steps__buttons_redo: 'Steps-module_steps__buttons_redo__v42tZ',
-};
-styleInject(css_248z$1);
 
 var classnamesExports = {};
 var classnames = {
@@ -37348,28 +38757,6 @@ var classnames = {
 
 var classNames = classnamesExports;
 
-const Steps = ({ count, undoDisabled, undo }) => {
-  return jsxRuntimeExports.jsxs('div', {
-    className: styles.steps,
-    children: [
-      jsxRuntimeExports.jsx('button', {
-        className: classNames(styles.steps__buttons, styles.steps__buttons_undo),
-        disabled: undoDisabled,
-        onClick: undo,
-      }),
-      jsxRuntimeExports.jsxs('p', { className: styles.steps__count, children: ['Steps: ', count] }),
-    ],
-  });
-};
-
-const ROWS = 4;
-const COLS = 4;
-const TOTAL_COUNT = ROWS * COLS;
-const EMPTY_INDEX = TOTAL_COUNT - 1;
-const SHUFFLE_MOVES_RANGE_MIN = 60;
-const SHUFFLE_MOVES_RANGE_MAX = 80;
-const MOVE_DIRECTIONS = ['up', 'down', 'left', 'right'];
-
 const rand = (min, max) => {
   return min + Math.floor(Math.random() * (max - min + 1));
 };
@@ -37406,7 +38793,7 @@ const moveTile = (board, index) => {
   if (canMoveTile(board, index)) {
     const emptyPosition = [...board[EMPTY_INDEX]];
     const tilePosition = [...board[index]];
-    let boardAfterMove = [...board];
+    const boardAfterMove = [...board];
     boardAfterMove[EMPTY_INDEX] = tilePosition;
     boardAfterMove[index] = emptyPosition;
     return boardAfterMove;
@@ -37435,37 +38822,39 @@ const moveInDirection = (board, dir) => {
   return tileToMove;
 };
 
+var css_248z$1 =
+  ".Steps-module_steps__5VyvB {\n  display: flex;\n  justify-content: center;\n  align-items: center; }\n  .Steps-module_steps__buttons__AiIkv {\n    border: 1px solid #000;\n    border-radius: 100%;\n    width: 50px;\n    height: 50px;\n    background-repeat: no-repeat;\n    background-position: center;\n    background-size: 40px 30px;\n    background-color: #f2f2f2;\n    margin: 0 10px;\n    cursor: pointer; }\n    .Steps-module_steps__buttons__AiIkv:hover {\n      border-color: #999; }\n    .Steps-module_steps__buttons__AiIkv:disabled {\n      border-color: #999;\n      opacity: 0.7;\n      cursor: default; }\n    .Steps-module_steps__buttons_undo__HnAqi {\n      background-image: url(\"data:image/svg+xml,%3C%3Fxml version='1.0' %3F%3E%3Csvg height='16px' id='Layer_1' style='enable-background:new 0 0 16 16;' version='1.1' viewBox='0 0 16 16' width='16px' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'%3E%3Cstyle type='text/css'%3E .cls-1%7Bfill:none;%7D%0A%3C/style%3E%3Cpath d='M12,8c1.2,0,2,0.8,2,2c0,1.2-0.8,2-2,2H9v1h3c1.7,0,3-1.2,3-3c0-1.7-1.3-3-3-3L2.9,7l2-2L4.2,4.3L1,7.5 l3.2,3.2L4.9,10l-2-2L12,8z' id='_x31_6_px_4_'/%3E%3Crect class='cls-1' data-name='&lt;Transparent Rectangle&gt;' height='16' id='_Transparent_Rectangle_' width='16'/%3E%3C/svg%3E\"); }\n    .Steps-module_steps__buttons_redo__v42tZ {\n      background-image: url(\"data:image/svg+xml,%3C%3Fxml version='1.0' %3F%3E%3Csvg height='16px' id='Layer_1' style='enable-background:new 0 0 16 16;' version='1.1' viewBox='0 0 16 16' width='16px' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'%3E%3Cstyle type='text/css'%3E .cls-1%7Bfill:none;%7D%0A%3C/style%3E%3Cpath d='M4,8c-1.2,0-2,0.8-2,2c0,1.2,0.8,2,2,2h3v1H4c-1.7,0-3-1.2-3-3c0-1.7,1.3-3,3-3l9.1,0l-2-2l0.7-0.7 L15,7.5l-3.2,3.2L11.1,10l2-2L4,8z' id='_x31_6_px_3_'/%3E%3Crect class='cls-1' data-name='&lt;Transparent Rectangle&gt;' height='16' id='_Transparent_Rectangle_' width='16'/%3E%3C/svg%3E\"); }\n";
+var styles = {
+  steps: 'Steps-module_steps__5VyvB',
+  steps__buttons: 'Steps-module_steps__buttons__AiIkv',
+  steps__buttons_undo: 'Steps-module_steps__buttons_undo__HnAqi',
+  steps__buttons_redo: 'Steps-module_steps__buttons_redo__v42tZ',
+};
+styleInject(css_248z$1);
+
+const Steps = () => {
+  const { board, steps, history, stepIndex } = useSelector((store) => store.game);
+  const dispatch = useDispatch();
+  const isDisabled = !history[stepIndex - 1] || isSolved(board);
+  const onUndo = () => dispatch(onUndoAction());
+  return jsxRuntimeExports.jsxs('div', {
+    className: styles.steps,
+    children: [
+      jsxRuntimeExports.jsx('button', {
+        className: classNames(styles.steps__buttons, styles.steps__buttons_undo),
+        disabled: isDisabled,
+        onClick: onUndo,
+      }),
+      jsxRuntimeExports.jsxs('p', { className: styles.steps__count, children: ['Steps: ', steps] }),
+    ],
+  });
+};
+
 const App = () => {
-  const [board, setBoard] = reactExports.useState(getNewBoard());
-  const [history, setHistory] = reactExports.useState([]);
-  const [steps, setSteps] = reactExports.useState(0);
-  const [stepIndex, setIndex] = reactExports.useState(0);
-  const onShuffle = () => {
-    const first = shuffle(board);
-    setBoard(first);
-    setHistory([first]);
-    setSteps(0);
-    setIndex(0);
-  };
-  const onMove = (index) => {
-    const step = moveTile(board, index);
-    setHistory((prevHistory) => [...prevHistory, step]);
-    setBoard(step);
-    setSteps((prevStep) => prevStep + 1);
-    setIndex((prevIndex) => prevIndex + 1);
-  };
-  const onUndo = () => {
-    if (history[stepIndex - 1]) {
-      history.pop();
-      setBoard(history[stepIndex - 1]);
-      setIndex((prevIndex) => prevIndex - 1);
-      setSteps((prevStep) => prevStep + 1);
-    }
-  };
+  const { board } = useSelector((store) => store.game);
   return jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, {
     children: [
       jsxRuntimeExports.jsx(Wrapper, {
-        onShuffle: onShuffle,
         children: board.map((item, index) =>
           jsxRuntimeExports.jsx(
             Button,
@@ -37473,15 +38862,15 @@ const App = () => {
               y: item[0],
               x: item[1],
               isHide: index === EMPTY_INDEX,
-              onClick: () => onMove(index),
               disabled: isSolved(board),
+              index: index,
               children: index + 1,
             },
             index
           )
         ),
       }),
-      jsxRuntimeExports.jsx(Steps, { count: steps, undo: onUndo, undoDisabled: !history[stepIndex - 1] }),
+      jsxRuntimeExports.jsx(Steps, {}),
     ],
   });
 };
@@ -37490,5 +38879,3220 @@ var css_248z =
   '* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box; }\n\nbody {\n  font: 16px/1.4 Georgia, serif;\n  background-color: #c4c4c4; }\n';
 styleInject(css_248z);
 
+function _typeof(obj) {
+  '@babel/helpers - typeof';
+
+  return (
+    (_typeof =
+      'function' == typeof Symbol && 'symbol' == typeof Symbol.iterator
+        ? function (obj) {
+            return typeof obj;
+          }
+        : function (obj) {
+            return obj && 'function' == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype
+              ? 'symbol'
+              : typeof obj;
+          }),
+    _typeof(obj)
+  );
+}
+
+function _toPrimitive(input, hint) {
+  if (_typeof(input) !== 'object' || input === null) return input;
+  var prim = input[Symbol.toPrimitive];
+  if (prim !== undefined) {
+    var res = prim.call(input, hint || 'default');
+    if (_typeof(res) !== 'object') return res;
+    throw new TypeError('@@toPrimitive must return a primitive value.');
+  }
+  return (hint === 'string' ? String : Number)(input);
+}
+
+function _toPropertyKey(arg) {
+  var key = _toPrimitive(arg, 'string');
+  return _typeof(key) === 'symbol' ? key : String(key);
+}
+
+function _defineProperty(obj, key, value) {
+  key = _toPropertyKey(key);
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
+  } else {
+    obj[key] = value;
+  }
+  return obj;
+}
+
+function ownKeys(object, enumerableOnly) {
+  var keys = Object.keys(object);
+  if (Object.getOwnPropertySymbols) {
+    var symbols = Object.getOwnPropertySymbols(object);
+    enumerableOnly &&
+      (symbols = symbols.filter(function (sym) {
+        return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+      })),
+      keys.push.apply(keys, symbols);
+  }
+  return keys;
+}
+function _objectSpread2(target) {
+  for (var i = 1; i < arguments.length; i++) {
+    var source = null != arguments[i] ? arguments[i] : {};
+    i % 2
+      ? ownKeys(Object(source), !0).forEach(function (key) {
+          _defineProperty(target, key, source[key]);
+        })
+      : Object.getOwnPropertyDescriptors
+      ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source))
+      : ownKeys(Object(source)).forEach(function (key) {
+          Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+        });
+  }
+  return target;
+}
+
+// Inlined version of the `symbol-observable` polyfill
+var $$observable = (function () {
+  return (typeof Symbol === 'function' && Symbol.observable) || '@@observable';
+})();
+
+/**
+ * These are private action types reserved by Redux.
+ * For any unknown actions, you must return the current state.
+ * If the current state is undefined, you must return the initial state.
+ * Do not reference these action types directly in your code.
+ */
+var randomString = function randomString() {
+  return Math.random().toString(36).substring(7).split('').join('.');
+};
+
+var ActionTypes = {
+  INIT: '@@redux/INIT' + randomString(),
+  REPLACE: '@@redux/REPLACE' + randomString(),
+  PROBE_UNKNOWN_ACTION: function PROBE_UNKNOWN_ACTION() {
+    return '@@redux/PROBE_UNKNOWN_ACTION' + randomString();
+  },
+};
+
+/**
+ * @param {any} obj The object to inspect.
+ * @returns {boolean} True if the argument appears to be a plain object.
+ */
+function isPlainObject(obj) {
+  if (typeof obj !== 'object' || obj === null) return false;
+  var proto = obj;
+
+  while (Object.getPrototypeOf(proto) !== null) {
+    proto = Object.getPrototypeOf(proto);
+  }
+
+  return Object.getPrototypeOf(obj) === proto;
+}
+
+// Inlined / shortened version of `kindOf` from https://github.com/jonschlinkert/kind-of
+function miniKindOf(val) {
+  if (val === void 0) return 'undefined';
+  if (val === null) return 'null';
+  var type = typeof val;
+
+  switch (type) {
+    case 'boolean':
+    case 'string':
+    case 'number':
+    case 'symbol':
+    case 'function': {
+      return type;
+    }
+  }
+
+  if (Array.isArray(val)) return 'array';
+  if (isDate(val)) return 'date';
+  if (isError(val)) return 'error';
+  var constructorName = ctorName(val);
+
+  switch (constructorName) {
+    case 'Symbol':
+    case 'Promise':
+    case 'WeakMap':
+    case 'WeakSet':
+    case 'Map':
+    case 'Set':
+      return constructorName;
+  } // other
+
+  return type.slice(8, -1).toLowerCase().replace(/\s/g, '');
+}
+
+function ctorName(val) {
+  return typeof val.constructor === 'function' ? val.constructor.name : null;
+}
+
+function isError(val) {
+  return (
+    val instanceof Error ||
+    (typeof val.message === 'string' && val.constructor && typeof val.constructor.stackTraceLimit === 'number')
+  );
+}
+
+function isDate(val) {
+  if (val instanceof Date) return true;
+  return (
+    typeof val.toDateString === 'function' && typeof val.getDate === 'function' && typeof val.setDate === 'function'
+  );
+}
+
+function kindOf(val) {
+  var typeOfVal = typeof val;
+
+  {
+    typeOfVal = miniKindOf(val);
+  }
+
+  return typeOfVal;
+}
+
+/**
+ * @deprecated
+ *
+ * **We recommend using the `configureStore` method
+ * of the `@reduxjs/toolkit` package**, which replaces `createStore`.
+ *
+ * Redux Toolkit is our recommended approach for writing Redux logic today,
+ * including store setup, reducers, data fetching, and more.
+ *
+ * **For more details, please read this Redux docs page:**
+ * **https://redux.js.org/introduction/why-rtk-is-redux-today**
+ *
+ * `configureStore` from Redux Toolkit is an improved version of `createStore` that
+ * simplifies setup and helps avoid common bugs.
+ *
+ * You should not be using the `redux` core package by itself today, except for learning purposes.
+ * The `createStore` method from the core `redux` package will not be removed, but we encourage
+ * all users to migrate to using Redux Toolkit for all Redux code.
+ *
+ * If you want to use `createStore` without this visual deprecation warning, use
+ * the `legacy_createStore` import instead:
+ *
+ * `import { legacy_createStore as createStore} from 'redux'`
+ *
+ */
+
+function createStore(reducer, preloadedState, enhancer) {
+  var _ref2;
+
+  if (
+    (typeof preloadedState === 'function' && typeof enhancer === 'function') ||
+    (typeof enhancer === 'function' && typeof arguments[3] === 'function')
+  ) {
+    throw new Error(
+      'It looks like you are passing several store enhancers to ' +
+        'createStore(). This is not supported. Instead, compose them ' +
+        'together to a single function. See https://redux.js.org/tutorials/fundamentals/part-4-store#creating-a-store-with-enhancers for an example.'
+    );
+  }
+
+  if (typeof preloadedState === 'function' && typeof enhancer === 'undefined') {
+    enhancer = preloadedState;
+    preloadedState = undefined;
+  }
+
+  if (typeof enhancer !== 'undefined') {
+    if (typeof enhancer !== 'function') {
+      throw new Error("Expected the enhancer to be a function. Instead, received: '" + kindOf(enhancer) + "'");
+    }
+
+    return enhancer(createStore)(reducer, preloadedState);
+  }
+
+  if (typeof reducer !== 'function') {
+    throw new Error("Expected the root reducer to be a function. Instead, received: '" + kindOf(reducer) + "'");
+  }
+
+  var currentReducer = reducer;
+  var currentState = preloadedState;
+  var currentListeners = [];
+  var nextListeners = currentListeners;
+  var isDispatching = false;
+  /**
+   * This makes a shallow copy of currentListeners so we can use
+   * nextListeners as a temporary list while dispatching.
+   *
+   * This prevents any bugs around consumers calling
+   * subscribe/unsubscribe in the middle of a dispatch.
+   */
+
+  function ensureCanMutateNextListeners() {
+    if (nextListeners === currentListeners) {
+      nextListeners = currentListeners.slice();
+    }
+  }
+  /**
+   * Reads the state tree managed by the store.
+   *
+   * @returns {any} The current state tree of your application.
+   */
+
+  function getState() {
+    if (isDispatching) {
+      throw new Error(
+        'You may not call store.getState() while the reducer is executing. ' +
+          'The reducer has already received the state as an argument. ' +
+          'Pass it down from the top reducer instead of reading it from the store.'
+      );
+    }
+
+    return currentState;
+  }
+  /**
+   * Adds a change listener. It will be called any time an action is dispatched,
+   * and some part of the state tree may potentially have changed. You may then
+   * call `getState()` to read the current state tree inside the callback.
+   *
+   * You may call `dispatch()` from a change listener, with the following
+   * caveats:
+   *
+   * 1. The subscriptions are snapshotted just before every `dispatch()` call.
+   * If you subscribe or unsubscribe while the listeners are being invoked, this
+   * will not have any effect on the `dispatch()` that is currently in progress.
+   * However, the next `dispatch()` call, whether nested or not, will use a more
+   * recent snapshot of the subscription list.
+   *
+   * 2. The listener should not expect to see all state changes, as the state
+   * might have been updated multiple times during a nested `dispatch()` before
+   * the listener is called. It is, however, guaranteed that all subscribers
+   * registered before the `dispatch()` started will be called with the latest
+   * state by the time it exits.
+   *
+   * @param {Function} listener A callback to be invoked on every dispatch.
+   * @returns {Function} A function to remove this change listener.
+   */
+
+  function subscribe(listener) {
+    if (typeof listener !== 'function') {
+      throw new Error("Expected the listener to be a function. Instead, received: '" + kindOf(listener) + "'");
+    }
+
+    if (isDispatching) {
+      throw new Error(
+        'You may not call store.subscribe() while the reducer is executing. ' +
+          'If you would like to be notified after the store has been updated, subscribe from a ' +
+          'component and invoke store.getState() in the callback to access the latest state. ' +
+          'See https://redux.js.org/api/store#subscribelistener for more details.'
+      );
+    }
+
+    var isSubscribed = true;
+    ensureCanMutateNextListeners();
+    nextListeners.push(listener);
+    return function unsubscribe() {
+      if (!isSubscribed) {
+        return;
+      }
+
+      if (isDispatching) {
+        throw new Error(
+          'You may not unsubscribe from a store listener while the reducer is executing. ' +
+            'See https://redux.js.org/api/store#subscribelistener for more details.'
+        );
+      }
+
+      isSubscribed = false;
+      ensureCanMutateNextListeners();
+      var index = nextListeners.indexOf(listener);
+      nextListeners.splice(index, 1);
+      currentListeners = null;
+    };
+  }
+  /**
+   * Dispatches an action. It is the only way to trigger a state change.
+   *
+   * The `reducer` function, used to create the store, will be called with the
+   * current state tree and the given `action`. Its return value will
+   * be considered the **next** state of the tree, and the change listeners
+   * will be notified.
+   *
+   * The base implementation only supports plain object actions. If you want to
+   * dispatch a Promise, an Observable, a thunk, or something else, you need to
+   * wrap your store creating function into the corresponding middleware. For
+   * example, see the documentation for the `redux-thunk` package. Even the
+   * middleware will eventually dispatch plain object actions using this method.
+   *
+   * @param {Object} action A plain object representing “what changed”. It is
+   * a good idea to keep actions serializable so you can record and replay user
+   * sessions, or use the time travelling `redux-devtools`. An action must have
+   * a `type` property which may not be `undefined`. It is a good idea to use
+   * string constants for action types.
+   *
+   * @returns {Object} For convenience, the same action object you dispatched.
+   *
+   * Note that, if you use a custom middleware, it may wrap `dispatch()` to
+   * return something else (for example, a Promise you can await).
+   */
+
+  function dispatch(action) {
+    if (!isPlainObject(action)) {
+      throw new Error(
+        "Actions must be plain objects. Instead, the actual type was: '" +
+          kindOf(action) +
+          "'. You may need to add middleware to your store setup to handle dispatching other values, such as 'redux-thunk' to handle dispatching functions. See https://redux.js.org/tutorials/fundamentals/part-4-store#middleware and https://redux.js.org/tutorials/fundamentals/part-6-async-logic#using-the-redux-thunk-middleware for examples."
+      );
+    }
+
+    if (typeof action.type === 'undefined') {
+      throw new Error(
+        'Actions may not have an undefined "type" property. You may have misspelled an action type string constant.'
+      );
+    }
+
+    if (isDispatching) {
+      throw new Error('Reducers may not dispatch actions.');
+    }
+
+    try {
+      isDispatching = true;
+      currentState = currentReducer(currentState, action);
+    } finally {
+      isDispatching = false;
+    }
+
+    var listeners = (currentListeners = nextListeners);
+
+    for (var i = 0; i < listeners.length; i++) {
+      var listener = listeners[i];
+      listener();
+    }
+
+    return action;
+  }
+  /**
+   * Replaces the reducer currently used by the store to calculate the state.
+   *
+   * You might need this if your app implements code splitting and you want to
+   * load some of the reducers dynamically. You might also need this if you
+   * implement a hot reloading mechanism for Redux.
+   *
+   * @param {Function} nextReducer The reducer for the store to use instead.
+   * @returns {void}
+   */
+
+  function replaceReducer(nextReducer) {
+    if (typeof nextReducer !== 'function') {
+      throw new Error("Expected the nextReducer to be a function. Instead, received: '" + kindOf(nextReducer));
+    }
+
+    currentReducer = nextReducer; // This action has a similiar effect to ActionTypes.INIT.
+    // Any reducers that existed in both the new and old rootReducer
+    // will receive the previous state. This effectively populates
+    // the new state tree with any relevant data from the old one.
+
+    dispatch({
+      type: ActionTypes.REPLACE,
+    });
+  }
+  /**
+   * Interoperability point for observable/reactive libraries.
+   * @returns {observable} A minimal observable of state changes.
+   * For more information, see the observable proposal:
+   * https://github.com/tc39/proposal-observable
+   */
+
+  function observable() {
+    var _ref;
+
+    var outerSubscribe = subscribe;
+    return (
+      (_ref = {
+        /**
+         * The minimal observable subscription method.
+         * @param {Object} observer Any object that can be used as an observer.
+         * The observer object should have a `next` method.
+         * @returns {subscription} An object with an `unsubscribe` method that can
+         * be used to unsubscribe the observable from the store, and prevent further
+         * emission of values from the observable.
+         */
+        subscribe: function subscribe(observer) {
+          if (typeof observer !== 'object' || observer === null) {
+            throw new Error("Expected the observer to be an object. Instead, received: '" + kindOf(observer) + "'");
+          }
+
+          function observeState() {
+            if (observer.next) {
+              observer.next(getState());
+            }
+          }
+
+          observeState();
+          var unsubscribe = outerSubscribe(observeState);
+          return {
+            unsubscribe: unsubscribe,
+          };
+        },
+      }),
+      (_ref[$$observable] = function () {
+        return this;
+      }),
+      _ref
+    );
+  } // When a store is created, an "INIT" action is dispatched so that every
+  // reducer returns their initial state. This effectively populates
+  // the initial state tree.
+
+  dispatch({
+    type: ActionTypes.INIT,
+  });
+  return (
+    (_ref2 = {
+      dispatch: dispatch,
+      subscribe: subscribe,
+      getState: getState,
+      replaceReducer: replaceReducer,
+    }),
+    (_ref2[$$observable] = observable),
+    _ref2
+  );
+}
+/**
+ * Creates a Redux store that holds the state tree.
+ *
+ * **We recommend using `configureStore` from the
+ * `@reduxjs/toolkit` package**, which replaces `createStore`:
+ * **https://redux.js.org/introduction/why-rtk-is-redux-today**
+ *
+ * The only way to change the data in the store is to call `dispatch()` on it.
+ *
+ * There should only be a single store in your app. To specify how different
+ * parts of the state tree respond to actions, you may combine several reducers
+ * into a single reducer function by using `combineReducers`.
+ *
+ * @param {Function} reducer A function that returns the next state tree, given
+ * the current state tree and the action to handle.
+ *
+ * @param {any} [preloadedState] The initial state. You may optionally specify it
+ * to hydrate the state from the server in universal apps, or to restore a
+ * previously serialized user session.
+ * If you use `combineReducers` to produce the root reducer function, this must be
+ * an object with the same shape as `combineReducers` keys.
+ *
+ * @param {Function} [enhancer] The store enhancer. You may optionally specify it
+ * to enhance the store with third-party capabilities such as middleware,
+ * time travel, persistence, etc. The only store enhancer that ships with Redux
+ * is `applyMiddleware()`.
+ *
+ * @returns {Store} A Redux store that lets you read the state, dispatch actions
+ * and subscribe to changes.
+ */
+
+var legacy_createStore = createStore;
+
+/**
+ * Prints a warning in the console if it exists.
+ *
+ * @param {String} message The warning message.
+ * @returns {void}
+ */
+function warning(message) {
+  /* eslint-disable no-console */
+  if (typeof console !== 'undefined' && typeof console.error === 'function') {
+    console.error(message);
+  }
+  /* eslint-enable no-console */
+
+  try {
+    // This error was thrown as a convenience so that if you enable
+    // "break on all exceptions" in your console,
+    // it would pause the execution at this line.
+    throw new Error(message);
+  } catch (e) {} // eslint-disable-line no-empty
+}
+
+function getUnexpectedStateShapeWarningMessage(inputState, reducers, action, unexpectedKeyCache) {
+  var reducerKeys = Object.keys(reducers);
+  var argumentName =
+    action && action.type === ActionTypes.INIT
+      ? 'preloadedState argument passed to createStore'
+      : 'previous state received by the reducer';
+
+  if (reducerKeys.length === 0) {
+    return (
+      'Store does not have a valid reducer. Make sure the argument passed ' +
+      'to combineReducers is an object whose values are reducers.'
+    );
+  }
+
+  if (!isPlainObject(inputState)) {
+    return (
+      'The ' +
+      argumentName +
+      ' has unexpected type of "' +
+      kindOf(inputState) +
+      '". Expected argument to be an object with the following ' +
+      ('keys: "' + reducerKeys.join('", "') + '"')
+    );
+  }
+
+  var unexpectedKeys = Object.keys(inputState).filter(function (key) {
+    return !reducers.hasOwnProperty(key) && !unexpectedKeyCache[key];
+  });
+  unexpectedKeys.forEach(function (key) {
+    unexpectedKeyCache[key] = true;
+  });
+  if (action && action.type === ActionTypes.REPLACE) return;
+
+  if (unexpectedKeys.length > 0) {
+    return (
+      'Unexpected ' +
+      (unexpectedKeys.length > 1 ? 'keys' : 'key') +
+      ' ' +
+      ('"' + unexpectedKeys.join('", "') + '" found in ' + argumentName + '. ') +
+      'Expected to find one of the known reducer keys instead: ' +
+      ('"' + reducerKeys.join('", "') + '". Unexpected keys will be ignored.')
+    );
+  }
+}
+
+function assertReducerShape(reducers) {
+  Object.keys(reducers).forEach(function (key) {
+    var reducer = reducers[key];
+    var initialState = reducer(undefined, {
+      type: ActionTypes.INIT,
+    });
+
+    if (typeof initialState === 'undefined') {
+      throw new Error(
+        'The slice reducer for key "' +
+          key +
+          '" returned undefined during initialization. ' +
+          'If the state passed to the reducer is undefined, you must ' +
+          'explicitly return the initial state. The initial state may ' +
+          "not be undefined. If you don't want to set a value for this reducer, " +
+          'you can use null instead of undefined.'
+      );
+    }
+
+    if (
+      typeof reducer(undefined, {
+        type: ActionTypes.PROBE_UNKNOWN_ACTION(),
+      }) === 'undefined'
+    ) {
+      throw new Error(
+        'The slice reducer for key "' +
+          key +
+          '" returned undefined when probed with a random type. ' +
+          ("Don't try to handle '" + ActionTypes.INIT + '\' or other actions in "redux/*" ') +
+          'namespace. They are considered private. Instead, you must return the ' +
+          'current state for any unknown actions, unless it is undefined, ' +
+          'in which case you must return the initial state, regardless of the ' +
+          'action type. The initial state may not be undefined, but can be null.'
+      );
+    }
+  });
+}
+/**
+ * Turns an object whose values are different reducer functions, into a single
+ * reducer function. It will call every child reducer, and gather their results
+ * into a single state object, whose keys correspond to the keys of the passed
+ * reducer functions.
+ *
+ * @param {Object} reducers An object whose values correspond to different
+ * reducer functions that need to be combined into one. One handy way to obtain
+ * it is to use ES6 `import * as reducers` syntax. The reducers may never return
+ * undefined for any action. Instead, they should return their initial state
+ * if the state passed to them was undefined, and the current state for any
+ * unrecognized action.
+ *
+ * @returns {Function} A reducer function that invokes every reducer inside the
+ * passed object, and builds a state object with the same shape.
+ */
+
+function combineReducers(reducers) {
+  var reducerKeys = Object.keys(reducers);
+  var finalReducers = {};
+
+  for (var i = 0; i < reducerKeys.length; i++) {
+    var key = reducerKeys[i];
+
+    {
+      if (typeof reducers[key] === 'undefined') {
+        warning('No reducer provided for key "' + key + '"');
+      }
+    }
+
+    if (typeof reducers[key] === 'function') {
+      finalReducers[key] = reducers[key];
+    }
+  }
+
+  var finalReducerKeys = Object.keys(finalReducers); // This is used to make sure we don't warn about the same
+  // keys multiple times.
+
+  var unexpectedKeyCache;
+
+  {
+    unexpectedKeyCache = {};
+  }
+
+  var shapeAssertionError;
+
+  try {
+    assertReducerShape(finalReducers);
+  } catch (e) {
+    shapeAssertionError = e;
+  }
+
+  return function combination(state, action) {
+    if (state === void 0) {
+      state = {};
+    }
+
+    if (shapeAssertionError) {
+      throw shapeAssertionError;
+    }
+
+    {
+      var warningMessage = getUnexpectedStateShapeWarningMessage(state, finalReducers, action, unexpectedKeyCache);
+
+      if (warningMessage) {
+        warning(warningMessage);
+      }
+    }
+
+    var hasChanged = false;
+    var nextState = {};
+
+    for (var _i = 0; _i < finalReducerKeys.length; _i++) {
+      var _key = finalReducerKeys[_i];
+      var reducer = finalReducers[_key];
+      var previousStateForKey = state[_key];
+      var nextStateForKey = reducer(previousStateForKey, action);
+
+      if (typeof nextStateForKey === 'undefined') {
+        var actionType = action && action.type;
+        throw new Error(
+          'When called with an action of type ' +
+            (actionType ? '"' + String(actionType) + '"' : '(unknown type)') +
+            ', the slice reducer for key "' +
+            _key +
+            '" returned undefined. ' +
+            'To ignore an action, you must explicitly return the previous state. ' +
+            'If you want this reducer to hold no value, you can return null instead of undefined.'
+        );
+      }
+
+      nextState[_key] = nextStateForKey;
+      hasChanged = hasChanged || nextStateForKey !== previousStateForKey;
+    }
+
+    hasChanged = hasChanged || finalReducerKeys.length !== Object.keys(state).length;
+    return hasChanged ? nextState : state;
+  };
+}
+
+function bindActionCreator(actionCreator, dispatch) {
+  return function () {
+    return dispatch(actionCreator.apply(this, arguments));
+  };
+}
+/**
+ * Turns an object whose values are action creators, into an object with the
+ * same keys, but with every function wrapped into a `dispatch` call so they
+ * may be invoked directly. This is just a convenience method, as you can call
+ * `store.dispatch(MyActionCreators.doSomething())` yourself just fine.
+ *
+ * For convenience, you can also pass an action creator as the first argument,
+ * and get a dispatch wrapped function in return.
+ *
+ * @param {Function|Object} actionCreators An object whose values are action
+ * creator functions. One handy way to obtain it is to use ES6 `import * as`
+ * syntax. You may also pass a single function.
+ *
+ * @param {Function} dispatch The `dispatch` function available on your Redux
+ * store.
+ *
+ * @returns {Function|Object} The object mimicking the original object, but with
+ * every action creator wrapped into the `dispatch` call. If you passed a
+ * function as `actionCreators`, the return value will also be a single
+ * function.
+ */
+
+function bindActionCreators(actionCreators, dispatch) {
+  if (typeof actionCreators === 'function') {
+    return bindActionCreator(actionCreators, dispatch);
+  }
+
+  if (typeof actionCreators !== 'object' || actionCreators === null) {
+    throw new Error(
+      "bindActionCreators expected an object or a function, but instead received: '" +
+        kindOf(actionCreators) +
+        "'. " +
+        'Did you write "import ActionCreators from" instead of "import * as ActionCreators from"?'
+    );
+  }
+
+  var boundActionCreators = {};
+
+  for (var key in actionCreators) {
+    var actionCreator = actionCreators[key];
+
+    if (typeof actionCreator === 'function') {
+      boundActionCreators[key] = bindActionCreator(actionCreator, dispatch);
+    }
+  }
+
+  return boundActionCreators;
+}
+
+/**
+ * Composes single-argument functions from right to left. The rightmost
+ * function can take multiple arguments as it provides the signature for
+ * the resulting composite function.
+ *
+ * @param {...Function} funcs The functions to compose.
+ * @returns {Function} A function obtained by composing the argument functions
+ * from right to left. For example, compose(f, g, h) is identical to doing
+ * (...args) => f(g(h(...args))).
+ */
+function compose$1() {
+  for (var _len = arguments.length, funcs = new Array(_len), _key = 0; _key < _len; _key++) {
+    funcs[_key] = arguments[_key];
+  }
+
+  if (funcs.length === 0) {
+    return function (arg) {
+      return arg;
+    };
+  }
+
+  if (funcs.length === 1) {
+    return funcs[0];
+  }
+
+  return funcs.reduce(function (a, b) {
+    return function () {
+      return a(b.apply(void 0, arguments));
+    };
+  });
+}
+
+/**
+ * Creates a store enhancer that applies middleware to the dispatch method
+ * of the Redux store. This is handy for a variety of tasks, such as expressing
+ * asynchronous actions in a concise manner, or logging every action payload.
+ *
+ * See `redux-thunk` package as an example of the Redux middleware.
+ *
+ * Because middleware is potentially asynchronous, this should be the first
+ * store enhancer in the composition chain.
+ *
+ * Note that each middleware will be given the `dispatch` and `getState` functions
+ * as named arguments.
+ *
+ * @param {...Function} middlewares The middleware chain to be applied.
+ * @returns {Function} A store enhancer applying the middleware.
+ */
+
+function applyMiddleware() {
+  for (var _len = arguments.length, middlewares = new Array(_len), _key = 0; _key < _len; _key++) {
+    middlewares[_key] = arguments[_key];
+  }
+
+  return function (createStore) {
+    return function () {
+      var store = createStore.apply(void 0, arguments);
+
+      var _dispatch = function dispatch() {
+        throw new Error(
+          'Dispatching while constructing your middleware is not allowed. ' +
+            'Other middleware would not be applied to this dispatch.'
+        );
+      };
+
+      var middlewareAPI = {
+        getState: store.getState,
+        dispatch: function dispatch() {
+          return _dispatch.apply(void 0, arguments);
+        },
+      };
+      var chain = middlewares.map(function (middleware) {
+        return middleware(middlewareAPI);
+      });
+      _dispatch = compose$1.apply(void 0, chain)(store.dispatch);
+      return _objectSpread2(
+        _objectSpread2({}, store),
+        {},
+        {
+          dispatch: _dispatch,
+        }
+      );
+    };
+  };
+}
+
+var redux = /*#__PURE__*/ Object.freeze({
+  __proto__: null,
+  __DO_NOT_USE__ActionTypes: ActionTypes,
+  applyMiddleware: applyMiddleware,
+  bindActionCreators: bindActionCreators,
+  combineReducers: combineReducers,
+  compose: compose$1,
+  createStore: createStore,
+  legacy_createStore: legacy_createStore,
+});
+
+var require$$0 = /*@__PURE__*/ getAugmentedNamespace(redux);
+
+var compose = require$$0.compose;
+var composeWithDevTools =
+  typeof window !== 'undefined' && window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__
+    ? window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__
+    : function () {
+        if (arguments.length === 0) return undefined;
+        if (typeof arguments[0] === 'object') return compose;
+        return compose.apply(null, arguments);
+      };
+
+var createSymbol = function createSymbol(name) {
+  return '@@redux-saga/' + name;
+};
+
+var CANCEL$1 =
+  /*#__PURE__*/
+  createSymbol('CANCEL_PROMISE');
+var CHANNEL_END_TYPE =
+  /*#__PURE__*/
+  createSymbol('CHANNEL_END');
+var IO =
+  /*#__PURE__*/
+  createSymbol('IO');
+var MATCH =
+  /*#__PURE__*/
+  createSymbol('MATCH');
+var MULTICAST =
+  /*#__PURE__*/
+  createSymbol('MULTICAST');
+var SAGA_ACTION =
+  /*#__PURE__*/
+  createSymbol('SAGA_ACTION');
+var SELF_CANCELLATION =
+  /*#__PURE__*/
+  createSymbol('SELF_CANCELLATION');
+var TASK =
+  /*#__PURE__*/
+  createSymbol('TASK');
+var TASK_CANCEL =
+  /*#__PURE__*/
+  createSymbol('TASK_CANCEL');
+var TERMINATE =
+  /*#__PURE__*/
+  createSymbol('TERMINATE');
+var SAGA_LOCATION =
+  /*#__PURE__*/
+  createSymbol('LOCATION');
+
+var undef = function undef(v) {
+  return v === null || v === undefined;
+};
+var notUndef = function notUndef(v) {
+  return v !== null && v !== undefined;
+};
+var func = function func(f) {
+  return typeof f === 'function';
+};
+var string$1 = function string(s) {
+  return typeof s === 'string';
+};
+var array$1 = Array.isArray;
+var object = function object(obj) {
+  return obj && !array$1(obj) && typeof obj === 'object';
+};
+var promise = function promise(p) {
+  return p && func(p.then);
+};
+var iterator = function iterator(it) {
+  return it && func(it.next) && func(it.throw);
+};
+var task = function task(t) {
+  return t && t[TASK];
+};
+var buffer = function buffer(buf) {
+  return buf && func(buf.isEmpty) && func(buf.take) && func(buf.put);
+};
+var pattern = function pattern(pat) {
+  return pat && (string$1(pat) || symbol$1(pat) || func(pat) || (array$1(pat) && pat.every(pattern)));
+};
+var channel$1 = function channel(ch) {
+  return ch && func(ch.take) && func(ch.close);
+};
+var stringableFunc = function stringableFunc(f) {
+  return func(f) && f.hasOwnProperty('toString');
+};
+var symbol$1 = function symbol(sym) {
+  return Boolean(sym) && typeof Symbol === 'function' && sym.constructor === Symbol && sym !== Symbol.prototype;
+};
+var multicast = function multicast(ch) {
+  return channel$1(ch) && ch[MULTICAST];
+};
+var effect = function effect(eff) {
+  return eff && eff[IO];
+};
+
+var konst = function konst(v) {
+  return function () {
+    return v;
+  };
+};
+var kTrue =
+  /*#__PURE__*/
+  konst(true);
+
+var noop = function noop() {};
+
+if (typeof Proxy !== 'undefined') {
+  noop =
+    /*#__PURE__*/
+    new Proxy(noop, {
+      set: function set() {
+        throw internalErr('There was an attempt to assign a property to internal `noop` function.');
+      },
+    });
+}
+var identity = function identity(v) {
+  return v;
+};
+var hasSymbol = typeof Symbol === 'function';
+var asyncIteratorSymbol = hasSymbol && Symbol.asyncIterator ? Symbol.asyncIterator : '@@asyncIterator';
+function check(value, predicate, error) {
+  if (!predicate(value)) {
+    throw new Error(error);
+  }
+}
+var assignWithSymbols = function assignWithSymbols(target, source) {
+  _extends(target, source);
+
+  if (Object.getOwnPropertySymbols) {
+    Object.getOwnPropertySymbols(source).forEach(function (s) {
+      target[s] = source[s];
+    });
+  }
+};
+var flatMap = function flatMap(mapper, arr) {
+  var _ref;
+
+  return (_ref = []).concat.apply(_ref, arr.map(mapper));
+};
+function remove(array, item) {
+  var index = array.indexOf(item);
+
+  if (index >= 0) {
+    array.splice(index, 1);
+  }
+}
+function once(fn) {
+  var called = false;
+  return function () {
+    if (called) {
+      return;
+    }
+
+    called = true;
+    fn();
+  };
+}
+
+var kThrow = function kThrow(err) {
+  throw err;
+};
+
+var kReturn = function kReturn(value) {
+  return {
+    value: value,
+    done: true,
+  };
+};
+
+function makeIterator(next, thro, name) {
+  if (thro === void 0) {
+    thro = kThrow;
+  }
+
+  if (name === void 0) {
+    name = 'iterator';
+  }
+
+  var iterator = {
+    meta: {
+      name: name,
+    },
+    next: next,
+    throw: thro,
+    return: kReturn,
+    isSagaIterator: true,
+  };
+
+  if (typeof Symbol !== 'undefined') {
+    iterator[Symbol.iterator] = function () {
+      return iterator;
+    };
+  }
+
+  return iterator;
+}
+function logError(error, _ref2) {
+  var sagaStack = _ref2.sagaStack;
+
+  /*eslint-disable no-console*/
+  console.error(error);
+  console.error(sagaStack);
+}
+var internalErr = function internalErr(err) {
+  return new Error(
+    "\n  redux-saga: Error checking hooks detected an inconsistent state. This is likely a bug\n  in redux-saga code and not yours. Thanks for reporting this in the project's github repo.\n  Error: " +
+      err +
+      '\n'
+  );
+};
+var createSetContextWarning = function createSetContextWarning(ctx, props) {
+  return (ctx ? ctx + '.' : '') + 'setContext(props): argument ' + props + ' is not a plain object';
+};
+var FROZEN_ACTION_ERROR =
+  "You can't put (a.k.a. dispatch from saga) frozen actions.\nWe have to define a special non-enumerable property on those actions for scheduling purposes.\nOtherwise you wouldn't be able to communicate properly between sagas & other subscribers (action ordering would become far less predictable).\nIf you are using redux and you care about this behaviour (frozen actions),\nthen you might want to switch to freezing actions in a middleware rather than in action creator.\nExample implementation:\n\nconst freezeActions = store => next => action => next(Object.freeze(action))\n"; // creates empty, but not-holey array
+
+var createEmptyArray = function createEmptyArray(n) {
+  return Array.apply(null, new Array(n));
+};
+var wrapSagaDispatch = function wrapSagaDispatch(dispatch) {
+  return function (action) {
+    {
+      check(
+        action,
+        function (ac) {
+          return !Object.isFrozen(ac);
+        },
+        FROZEN_ACTION_ERROR
+      );
+    }
+
+    return dispatch(
+      Object.defineProperty(action, SAGA_ACTION, {
+        value: true,
+      })
+    );
+  };
+};
+var shouldTerminate = function shouldTerminate(res) {
+  return res === TERMINATE;
+};
+var shouldCancel = function shouldCancel(res) {
+  return res === TASK_CANCEL;
+};
+var shouldComplete = function shouldComplete(res) {
+  return shouldTerminate(res) || shouldCancel(res);
+};
+function createAllStyleChildCallbacks(shape, parentCallback) {
+  var keys = Object.keys(shape);
+  var totalCount = keys.length;
+
+  {
+    check(
+      totalCount,
+      function (c) {
+        return c > 0;
+      },
+      'createAllStyleChildCallbacks: get an empty array or object'
+    );
+  }
+
+  var completedCount = 0;
+  var completed;
+  var results = array$1(shape) ? createEmptyArray(totalCount) : {};
+  var childCallbacks = {};
+
+  function checkEnd() {
+    if (completedCount === totalCount) {
+      completed = true;
+      parentCallback(results);
+    }
+  }
+
+  keys.forEach(function (key) {
+    var chCbAtKey = function chCbAtKey(res, isErr) {
+      if (completed) {
+        return;
+      }
+
+      if (isErr || shouldComplete(res)) {
+        parentCallback.cancel();
+        parentCallback(res, isErr);
+      } else {
+        results[key] = res;
+        completedCount++;
+        checkEnd();
+      }
+    };
+
+    chCbAtKey.cancel = noop;
+    childCallbacks[key] = chCbAtKey;
+  });
+
+  parentCallback.cancel = function () {
+    if (!completed) {
+      completed = true;
+      keys.forEach(function (key) {
+        return childCallbacks[key].cancel();
+      });
+    }
+  };
+
+  return childCallbacks;
+}
+function getMetaInfo(fn) {
+  return {
+    name: fn.name || 'anonymous',
+    location: getLocation(fn),
+  };
+}
+function getLocation(instrumented) {
+  return instrumented[SAGA_LOCATION];
+}
+
+var BUFFER_OVERFLOW = "Channel's Buffer overflow!";
+var ON_OVERFLOW_THROW = 1;
+var ON_OVERFLOW_SLIDE = 3;
+var ON_OVERFLOW_EXPAND = 4;
+
+function ringBuffer(limit, overflowAction) {
+  if (limit === void 0) {
+    limit = 10;
+  }
+
+  var arr = new Array(limit);
+  var length = 0;
+  var pushIndex = 0;
+  var popIndex = 0;
+
+  var push = function push(it) {
+    arr[pushIndex] = it;
+    pushIndex = (pushIndex + 1) % limit;
+    length++;
+  };
+
+  var take = function take() {
+    if (length != 0) {
+      var it = arr[popIndex];
+      arr[popIndex] = null;
+      length--;
+      popIndex = (popIndex + 1) % limit;
+      return it;
+    }
+  };
+
+  var flush = function flush() {
+    var items = [];
+
+    while (length) {
+      items.push(take());
+    }
+
+    return items;
+  };
+
+  return {
+    isEmpty: function isEmpty() {
+      return length == 0;
+    },
+    put: function put(it) {
+      if (length < limit) {
+        push(it);
+      } else {
+        var doubledLimit;
+
+        switch (overflowAction) {
+          case ON_OVERFLOW_THROW:
+            throw new Error(BUFFER_OVERFLOW);
+
+          case ON_OVERFLOW_SLIDE:
+            arr[pushIndex] = it;
+            pushIndex = (pushIndex + 1) % limit;
+            popIndex = pushIndex;
+            break;
+
+          case ON_OVERFLOW_EXPAND:
+            doubledLimit = 2 * limit;
+            arr = flush();
+            length = arr.length;
+            pushIndex = arr.length;
+            popIndex = 0;
+            arr.length = doubledLimit;
+            limit = doubledLimit;
+            push(it);
+            break;
+        }
+      }
+    },
+    take: take,
+    flush: flush,
+  };
+}
+var expanding = function expanding(initialSize) {
+  return ringBuffer(initialSize, ON_OVERFLOW_EXPAND);
+};
+
+var TAKE = 'TAKE';
+var PUT = 'PUT';
+var ALL = 'ALL';
+var RACE = 'RACE';
+var CALL = 'CALL';
+var CPS = 'CPS';
+var FORK = 'FORK';
+var JOIN = 'JOIN';
+var CANCEL = 'CANCEL';
+var SELECT = 'SELECT';
+var ACTION_CHANNEL = 'ACTION_CHANNEL';
+var CANCELLED$1 = 'CANCELLED';
+var FLUSH = 'FLUSH';
+var GET_CONTEXT = 'GET_CONTEXT';
+var SET_CONTEXT = 'SET_CONTEXT';
+
+var TEST_HINT =
+  '\n(HINT: if you are getting these errors in tests, consider using createMockTask from @redux-saga/testing-utils)';
+
+var makeEffect = function makeEffect(type, payload) {
+  var _ref;
+
+  return (_ref = {}), (_ref[IO] = true), (_ref.combinator = false), (_ref.type = type), (_ref.payload = payload), _ref;
+};
+function take(patternOrChannel, multicastPattern) {
+  if (patternOrChannel === void 0) {
+    patternOrChannel = '*';
+  }
+
+  if (arguments.length) {
+    check(arguments[0], notUndef, 'take(patternOrChannel): patternOrChannel is undefined');
+  }
+
+  if (pattern(patternOrChannel)) {
+    if (notUndef(multicastPattern)) {
+      /* eslint-disable no-console */
+      console.warn(
+        'take(pattern) takes one argument but two were provided. Consider passing an array for listening to several action types'
+      );
+    }
+
+    return makeEffect(TAKE, {
+      pattern: patternOrChannel,
+    });
+  }
+
+  if (multicast(patternOrChannel) && notUndef(multicastPattern) && pattern(multicastPattern)) {
+    return makeEffect(TAKE, {
+      channel: patternOrChannel,
+      pattern: multicastPattern,
+    });
+  }
+
+  if (channel$1(patternOrChannel)) {
+    if (notUndef(multicastPattern)) {
+      /* eslint-disable no-console */
+      console.warn('take(channel) takes one argument but two were provided. Second argument is ignored.');
+    }
+
+    return makeEffect(TAKE, {
+      channel: patternOrChannel,
+    });
+  }
+
+  {
+    throw new Error(
+      'take(patternOrChannel): argument ' + patternOrChannel + ' is not valid channel or a valid pattern'
+    );
+  }
+}
+function put(channel$1$1, action) {
+  {
+    if (arguments.length > 1) {
+      check(channel$1$1, notUndef, 'put(channel, action): argument channel is undefined');
+      check(channel$1$1, channel$1, 'put(channel, action): argument ' + channel$1$1 + ' is not a valid channel');
+      check(action, notUndef, 'put(channel, action): argument action is undefined');
+    } else {
+      check(channel$1$1, notUndef, 'put(action): argument action is undefined');
+    }
+  }
+
+  if (undef(action)) {
+    action = channel$1$1; // `undefined` instead of `null` to make default parameter work
+
+    channel$1$1 = undefined;
+  }
+
+  return makeEffect(PUT, {
+    channel: channel$1$1,
+    action: action,
+  });
+}
+
+var validateFnDescriptor = function validateFnDescriptor(effectName, fnDescriptor) {
+  check(fnDescriptor, notUndef, effectName + ': argument fn is undefined or null');
+
+  if (func(fnDescriptor)) {
+    return;
+  }
+
+  var context = null;
+  var fn;
+
+  if (array$1(fnDescriptor)) {
+    context = fnDescriptor[0];
+    fn = fnDescriptor[1];
+    check(fn, notUndef, effectName + ': argument of type [context, fn] has undefined or null `fn`');
+  } else if (object(fnDescriptor)) {
+    context = fnDescriptor.context;
+    fn = fnDescriptor.fn;
+    check(fn, notUndef, effectName + ': argument of type {context, fn} has undefined or null `fn`');
+  } else {
+    check(fnDescriptor, func, effectName + ': argument fn is not function');
+    return;
+  }
+
+  if (context && string$1(fn)) {
+    check(context[fn], func, effectName + ': context arguments has no such method - "' + fn + '"');
+    return;
+  }
+
+  check(fn, func, effectName + ': unpacked fn argument (from [context, fn] or {context, fn}) is not a function');
+};
+
+function getFnCallDescriptor(fnDescriptor, args) {
+  var context = null;
+  var fn;
+
+  if (func(fnDescriptor)) {
+    fn = fnDescriptor;
+  } else {
+    if (array$1(fnDescriptor)) {
+      context = fnDescriptor[0];
+      fn = fnDescriptor[1];
+    } else {
+      context = fnDescriptor.context;
+      fn = fnDescriptor.fn;
+    }
+
+    if (context && string$1(fn) && func(context[fn])) {
+      fn = context[fn];
+    }
+  }
+
+  return {
+    context: context,
+    fn: fn,
+    args: args,
+  };
+}
+function fork(fnDescriptor) {
+  {
+    validateFnDescriptor('fork', fnDescriptor);
+    check(
+      fnDescriptor,
+      function (arg) {
+        return !effect(arg);
+      },
+      'fork: argument must not be an effect'
+    );
+  }
+
+  for (var _len3 = arguments.length, args = new Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
+    args[_key3 - 1] = arguments[_key3];
+  }
+
+  return makeEffect(FORK, getFnCallDescriptor(fnDescriptor, args));
+}
+function cancel(taskOrTasks) {
+  if (taskOrTasks === void 0) {
+    taskOrTasks = SELF_CANCELLATION;
+  }
+
+  {
+    if (arguments.length > 1) {
+      throw new Error(
+        'cancel(...tasks) is not supported any more. Please use cancel([...tasks]) to cancel multiple tasks.'
+      );
+    }
+
+    if (array$1(taskOrTasks)) {
+      taskOrTasks.forEach(function (t) {
+        check(t, task, 'cancel([...tasks]): argument ' + t + ' is not a valid Task object ' + TEST_HINT);
+      });
+    } else if (taskOrTasks !== SELF_CANCELLATION && notUndef(taskOrTasks)) {
+      check(taskOrTasks, task, 'cancel(task): argument ' + taskOrTasks + ' is not a valid Task object ' + TEST_HINT);
+    }
+  }
+
+  return makeEffect(CANCEL, taskOrTasks);
+}
+function select(selector) {
+  if (selector === void 0) {
+    selector = identity;
+  }
+
+  for (var _len5 = arguments.length, args = new Array(_len5 > 1 ? _len5 - 1 : 0), _key5 = 1; _key5 < _len5; _key5++) {
+    args[_key5 - 1] = arguments[_key5];
+  }
+
+  if (arguments.length) {
+    check(arguments[0], notUndef, 'select(selector, [...]): argument selector is undefined');
+    check(selector, func, 'select(selector, [...]): argument ' + selector + ' is not a function');
+  }
+
+  return makeEffect(SELECT, {
+    selector: selector,
+    args: args,
+  });
+}
+
+function deferred() {
+  var def = {};
+  def.promise = new Promise(function (resolve, reject) {
+    def.resolve = resolve;
+    def.reject = reject;
+  });
+  return def;
+}
+
+var queue = [];
+/**
+  Variable to hold a counting semaphore
+  - Incrementing adds a lock and puts the scheduler in a `suspended` state (if it's not
+    already suspended)
+  - Decrementing releases a lock. Zero locks puts the scheduler in a `released` state. This
+    triggers flushing the queued tasks.
+**/
+
+var semaphore = 0;
+/**
+  Executes a task 'atomically'. Tasks scheduled during this execution will be queued
+  and flushed after this task has finished (assuming the scheduler endup in a released
+  state).
+**/
+
+function exec(task) {
+  try {
+    suspend();
+    task();
+  } finally {
+    release();
+  }
+}
+/**
+  Executes or queues a task depending on the state of the scheduler (`suspended` or `released`)
+**/
+
+function asap(task) {
+  queue.push(task);
+
+  if (!semaphore) {
+    suspend();
+    flush();
+  }
+}
+/**
+ * Puts the scheduler in a `suspended` state and executes a task immediately.
+ */
+
+function immediately(task) {
+  try {
+    suspend();
+    return task();
+  } finally {
+    flush();
+  }
+}
+/**
+  Puts the scheduler in a `suspended` state. Scheduled tasks will be queued until the
+  scheduler is released.
+**/
+
+function suspend() {
+  semaphore++;
+}
+/**
+  Puts the scheduler in a `released` state.
+**/
+
+function release() {
+  semaphore--;
+}
+/**
+  Releases the current lock. Executes all queued tasks if the scheduler is in the released state.
+**/
+
+function flush() {
+  release();
+  var task;
+
+  while (!semaphore && (task = queue.shift()) !== undefined) {
+    exec(task);
+  }
+}
+
+var array = function array(patterns) {
+  return function (input) {
+    return patterns.some(function (p) {
+      return matcher(p)(input);
+    });
+  };
+};
+var predicate = function predicate(_predicate) {
+  return function (input) {
+    return _predicate(input);
+  };
+};
+var string = function string(pattern) {
+  return function (input) {
+    return input.type === String(pattern);
+  };
+};
+var symbol = function symbol(pattern) {
+  return function (input) {
+    return input.type === pattern;
+  };
+};
+var wildcard = function wildcard() {
+  return kTrue;
+};
+function matcher(pattern) {
+  // prettier-ignore
+  var matcherCreator = pattern === '*' ? wildcard : string$1(pattern) ? string : array$1(pattern) ? array : stringableFunc(pattern) ? string : func(pattern) ? predicate : symbol$1(pattern) ? symbol : null;
+
+  if (matcherCreator === null) {
+    throw new Error('invalid pattern: ' + pattern);
+  }
+
+  return matcherCreator(pattern);
+}
+
+var END = {
+  type: CHANNEL_END_TYPE,
+};
+var isEnd = function isEnd(a) {
+  return a && a.type === CHANNEL_END_TYPE;
+};
+var CLOSED_CHANNEL_WITH_TAKERS = 'Cannot have a closed channel with pending takers';
+var INVALID_BUFFER = 'invalid buffer passed to channel factory function';
+var UNDEFINED_INPUT_ERROR =
+  'Saga or channel was provided with an undefined action\nHints:\n  - check that your Action Creator returns a non-undefined value\n  - if the Saga was started using runSaga, check that your subscribe source provides the action to its listeners';
+function channel(buffer$1) {
+  if (buffer$1 === void 0) {
+    buffer$1 = expanding();
+  }
+
+  var closed = false;
+  var takers = [];
+
+  {
+    check(buffer$1, buffer, INVALID_BUFFER);
+  }
+
+  function checkForbiddenStates() {
+    if (closed && takers.length) {
+      throw internalErr(CLOSED_CHANNEL_WITH_TAKERS);
+    }
+
+    if (takers.length && !buffer$1.isEmpty()) {
+      throw internalErr('Cannot have pending takers with non empty buffer');
+    }
+  }
+
+  function put(input) {
+    {
+      checkForbiddenStates();
+      check(input, notUndef, UNDEFINED_INPUT_ERROR);
+    }
+
+    if (closed) {
+      return;
+    }
+
+    if (takers.length === 0) {
+      return buffer$1.put(input);
+    }
+
+    var cb = takers.shift();
+    cb(input);
+  }
+
+  function take(cb) {
+    {
+      checkForbiddenStates();
+      check(cb, func, "channel.take's callback must be a function");
+    }
+
+    if (closed && buffer$1.isEmpty()) {
+      cb(END);
+    } else if (!buffer$1.isEmpty()) {
+      cb(buffer$1.take());
+    } else {
+      takers.push(cb);
+
+      cb.cancel = function () {
+        remove(takers, cb);
+      };
+    }
+  }
+
+  function flush(cb) {
+    {
+      checkForbiddenStates();
+      check(cb, func, "channel.flush' callback must be a function");
+    }
+
+    if (closed && buffer$1.isEmpty()) {
+      cb(END);
+      return;
+    }
+
+    cb(buffer$1.flush());
+  }
+
+  function close() {
+    {
+      checkForbiddenStates();
+    }
+
+    if (closed) {
+      return;
+    }
+
+    closed = true;
+    var arr = takers;
+    takers = [];
+
+    for (var i = 0, len = arr.length; i < len; i++) {
+      var taker = arr[i];
+      taker(END);
+    }
+  }
+
+  return {
+    take: take,
+    put: put,
+    flush: flush,
+    close: close,
+  };
+}
+function multicastChannel() {
+  var _ref;
+
+  var closed = false;
+  var currentTakers = [];
+  var nextTakers = currentTakers;
+
+  function checkForbiddenStates() {
+    if (closed && nextTakers.length) {
+      throw internalErr(CLOSED_CHANNEL_WITH_TAKERS);
+    }
+  }
+
+  var ensureCanMutateNextTakers = function ensureCanMutateNextTakers() {
+    if (nextTakers !== currentTakers) {
+      return;
+    }
+
+    nextTakers = currentTakers.slice();
+  };
+
+  var close = function close() {
+    {
+      checkForbiddenStates();
+    }
+
+    closed = true;
+    var takers = (currentTakers = nextTakers);
+    nextTakers = [];
+    takers.forEach(function (taker) {
+      taker(END);
+    });
+  };
+
+  return (
+    (_ref = {}),
+    (_ref[MULTICAST] = true),
+    (_ref.put = function put(input) {
+      {
+        checkForbiddenStates();
+        check(input, notUndef, UNDEFINED_INPUT_ERROR);
+      }
+
+      if (closed) {
+        return;
+      }
+
+      if (isEnd(input)) {
+        close();
+        return;
+      }
+
+      var takers = (currentTakers = nextTakers);
+
+      for (var i = 0, len = takers.length; i < len; i++) {
+        var taker = takers[i];
+
+        if (taker[MATCH](input)) {
+          taker.cancel();
+          taker(input);
+        }
+      }
+    }),
+    (_ref.take = function take(cb, matcher) {
+      if (matcher === void 0) {
+        matcher = wildcard;
+      }
+
+      {
+        checkForbiddenStates();
+      }
+
+      if (closed) {
+        cb(END);
+        return;
+      }
+
+      cb[MATCH] = matcher;
+      ensureCanMutateNextTakers();
+      nextTakers.push(cb);
+      cb.cancel = once(function () {
+        ensureCanMutateNextTakers();
+        remove(nextTakers, cb);
+      });
+    }),
+    (_ref.close = close),
+    _ref
+  );
+}
+function stdChannel() {
+  var chan = multicastChannel();
+  var put = chan.put;
+
+  chan.put = function (input) {
+    if (input[SAGA_ACTION]) {
+      put(input);
+      return;
+    }
+
+    asap(function () {
+      put(input);
+    });
+  };
+
+  return chan;
+}
+
+var RUNNING = 0;
+var CANCELLED = 1;
+var ABORTED = 2;
+var DONE = 3;
+
+function resolvePromise(promise, cb) {
+  var cancelPromise = promise[CANCEL$1];
+
+  if (func(cancelPromise)) {
+    cb.cancel = cancelPromise;
+  }
+
+  promise.then(cb, function (error) {
+    cb(error, true);
+  });
+}
+
+var current = 0;
+var nextSagaId = function () {
+  return ++current;
+};
+
+var _effectRunnerMap;
+
+function getIteratorMetaInfo(iterator, fn) {
+  if (iterator.isSagaIterator) {
+    return {
+      name: iterator.meta.name,
+    };
+  }
+
+  return getMetaInfo(fn);
+}
+
+function createTaskIterator(_ref) {
+  var context = _ref.context,
+    fn = _ref.fn,
+    args = _ref.args;
+
+  // catch synchronous failures; see #152 and #441
+  try {
+    var result = fn.apply(context, args); // i.e. a generator function returns an iterator
+
+    if (iterator(result)) {
+      return result;
+    }
+
+    var resolved = false;
+
+    var next = function next(arg) {
+      if (!resolved) {
+        resolved = true; // Only promises returned from fork will be interpreted. See #1573
+
+        return {
+          value: result,
+          done: !promise(result),
+        };
+      } else {
+        return {
+          value: arg,
+          done: true,
+        };
+      }
+    };
+
+    return makeIterator(next);
+  } catch (err) {
+    // do not bubble up synchronous failures for detached forks
+    // instead create a failed task. See #152 and #441
+    return makeIterator(function () {
+      throw err;
+    });
+  }
+}
+
+function runPutEffect(env, _ref2, cb) {
+  var channel = _ref2.channel,
+    action = _ref2.action,
+    resolve = _ref2.resolve;
+
+  /**
+   Schedule the put in case another saga is holding a lock.
+   The put will be executed atomically. ie nested puts will execute after
+   this put has terminated.
+   **/
+  asap(function () {
+    var result;
+
+    try {
+      result = (channel ? channel.put : env.dispatch)(action);
+    } catch (error) {
+      cb(error, true);
+      return;
+    }
+
+    if (resolve && promise(result)) {
+      resolvePromise(result, cb);
+    } else {
+      cb(result);
+    }
+  }); // Put effects are non cancellables
+}
+
+function runTakeEffect(env, _ref3, cb) {
+  var _ref3$channel = _ref3.channel,
+    channel = _ref3$channel === void 0 ? env.channel : _ref3$channel,
+    pattern = _ref3.pattern,
+    maybe = _ref3.maybe;
+
+  var takeCb = function takeCb(input) {
+    if (input instanceof Error) {
+      cb(input, true);
+      return;
+    }
+
+    if (isEnd(input) && !maybe) {
+      cb(TERMINATE);
+      return;
+    }
+
+    cb(input);
+  };
+
+  try {
+    channel.take(takeCb, notUndef(pattern) ? matcher(pattern) : null);
+  } catch (err) {
+    cb(err, true);
+    return;
+  }
+
+  cb.cancel = takeCb.cancel;
+}
+
+function runCallEffect(env, _ref4, cb, _ref5) {
+  var context = _ref4.context,
+    fn = _ref4.fn,
+    args = _ref4.args;
+  var task = _ref5.task;
+
+  // catch synchronous failures; see #152
+  try {
+    var result = fn.apply(context, args);
+
+    if (promise(result)) {
+      resolvePromise(result, cb);
+      return;
+    }
+
+    if (iterator(result)) {
+      // resolve iterator
+      proc(
+        env,
+        result,
+        task.context,
+        current,
+        getMetaInfo(fn),
+        /* isRoot */
+        false,
+        cb
+      );
+      return;
+    }
+
+    cb(result);
+  } catch (error) {
+    cb(error, true);
+  }
+}
+
+function runCPSEffect(env, _ref6, cb) {
+  var context = _ref6.context,
+    fn = _ref6.fn,
+    args = _ref6.args;
+
+  // CPS (ie node style functions) can define their own cancellation logic
+  // by setting cancel field on the cb
+  // catch synchronous failures; see #152
+  try {
+    var cpsCb = function cpsCb(err, res) {
+      if (undef(err)) {
+        cb(res);
+      } else {
+        cb(err, true);
+      }
+    };
+
+    fn.apply(context, args.concat(cpsCb));
+
+    if (cpsCb.cancel) {
+      cb.cancel = cpsCb.cancel;
+    }
+  } catch (error) {
+    cb(error, true);
+  }
+}
+
+function runForkEffect(env, _ref7, cb, _ref8) {
+  var context = _ref7.context,
+    fn = _ref7.fn,
+    args = _ref7.args,
+    detached = _ref7.detached;
+  var parent = _ref8.task;
+  var taskIterator = createTaskIterator({
+    context: context,
+    fn: fn,
+    args: args,
+  });
+  var meta = getIteratorMetaInfo(taskIterator, fn);
+  immediately(function () {
+    var child = proc(env, taskIterator, parent.context, current, meta, detached, undefined);
+
+    if (detached) {
+      cb(child);
+    } else {
+      if (child.isRunning()) {
+        parent.queue.addTask(child);
+        cb(child);
+      } else if (child.isAborted()) {
+        parent.queue.abort(child.error());
+      } else {
+        cb(child);
+      }
+    }
+  }); // Fork effects are non cancellables
+}
+
+function runJoinEffect(env, taskOrTasks, cb, _ref9) {
+  var task = _ref9.task;
+
+  var joinSingleTask = function joinSingleTask(taskToJoin, cb) {
+    if (taskToJoin.isRunning()) {
+      var joiner = {
+        task: task,
+        cb: cb,
+      };
+
+      cb.cancel = function () {
+        if (taskToJoin.isRunning()) remove(taskToJoin.joiners, joiner);
+      };
+
+      taskToJoin.joiners.push(joiner);
+    } else {
+      if (taskToJoin.isAborted()) {
+        cb(taskToJoin.error(), true);
+      } else {
+        cb(taskToJoin.result());
+      }
+    }
+  };
+
+  if (array$1(taskOrTasks)) {
+    if (taskOrTasks.length === 0) {
+      cb([]);
+      return;
+    }
+
+    var childCallbacks = createAllStyleChildCallbacks(taskOrTasks, cb);
+    taskOrTasks.forEach(function (t, i) {
+      joinSingleTask(t, childCallbacks[i]);
+    });
+  } else {
+    joinSingleTask(taskOrTasks, cb);
+  }
+}
+
+function cancelSingleTask(taskToCancel) {
+  if (taskToCancel.isRunning()) {
+    taskToCancel.cancel();
+  }
+}
+
+function runCancelEffect(env, taskOrTasks, cb, _ref10) {
+  var task = _ref10.task;
+
+  if (taskOrTasks === SELF_CANCELLATION) {
+    cancelSingleTask(task);
+  } else if (array$1(taskOrTasks)) {
+    taskOrTasks.forEach(cancelSingleTask);
+  } else {
+    cancelSingleTask(taskOrTasks);
+  }
+
+  cb(); // cancel effects are non cancellables
+}
+
+function runAllEffect(env, effects, cb, _ref11) {
+  var digestEffect = _ref11.digestEffect;
+  var effectId = current;
+  var keys = Object.keys(effects);
+
+  if (keys.length === 0) {
+    cb(array$1(effects) ? [] : {});
+    return;
+  }
+
+  var childCallbacks = createAllStyleChildCallbacks(effects, cb);
+  keys.forEach(function (key) {
+    digestEffect(effects[key], effectId, childCallbacks[key], key);
+  });
+}
+
+function runRaceEffect(env, effects, cb, _ref12) {
+  var digestEffect = _ref12.digestEffect;
+  var effectId = current;
+  var keys = Object.keys(effects);
+  var response = array$1(effects) ? createEmptyArray(keys.length) : {};
+  var childCbs = {};
+  var completed = false;
+  keys.forEach(function (key) {
+    var chCbAtKey = function chCbAtKey(res, isErr) {
+      if (completed) {
+        return;
+      }
+
+      if (isErr || shouldComplete(res)) {
+        // Race Auto cancellation
+        cb.cancel();
+        cb(res, isErr);
+      } else {
+        cb.cancel();
+        completed = true;
+        response[key] = res;
+        cb(response);
+      }
+    };
+
+    chCbAtKey.cancel = noop;
+    childCbs[key] = chCbAtKey;
+  });
+
+  cb.cancel = function () {
+    // prevents unnecessary cancellation
+    if (!completed) {
+      completed = true;
+      keys.forEach(function (key) {
+        return childCbs[key].cancel();
+      });
+    }
+  };
+
+  keys.forEach(function (key) {
+    if (completed) {
+      return;
+    }
+
+    digestEffect(effects[key], effectId, childCbs[key], key);
+  });
+}
+
+function runSelectEffect(env, _ref13, cb) {
+  var selector = _ref13.selector,
+    args = _ref13.args;
+
+  try {
+    var state = selector.apply(void 0, [env.getState()].concat(args));
+    cb(state);
+  } catch (error) {
+    cb(error, true);
+  }
+}
+
+function runChannelEffect(env, _ref14, cb) {
+  var pattern = _ref14.pattern,
+    buffer = _ref14.buffer;
+  var chan = channel(buffer);
+  var match = matcher(pattern);
+
+  var taker = function taker(action) {
+    if (!isEnd(action)) {
+      env.channel.take(taker, match);
+    }
+
+    chan.put(action);
+  };
+
+  var close = chan.close;
+
+  chan.close = function () {
+    taker.cancel();
+    close();
+  };
+
+  env.channel.take(taker, match);
+  cb(chan);
+}
+
+function runCancelledEffect(env, data, cb, _ref15) {
+  var task = _ref15.task;
+  cb(task.isCancelled());
+}
+
+function runFlushEffect(env, channel, cb) {
+  channel.flush(cb);
+}
+
+function runGetContextEffect(env, prop, cb, _ref16) {
+  var task = _ref16.task;
+  cb(task.context[prop]);
+}
+
+function runSetContextEffect(env, props, cb, _ref17) {
+  var task = _ref17.task;
+  assignWithSymbols(task.context, props);
+  cb();
+}
+
+var effectRunnerMap =
+  ((_effectRunnerMap = {}),
+  (_effectRunnerMap[TAKE] = runTakeEffect),
+  (_effectRunnerMap[PUT] = runPutEffect),
+  (_effectRunnerMap[ALL] = runAllEffect),
+  (_effectRunnerMap[RACE] = runRaceEffect),
+  (_effectRunnerMap[CALL] = runCallEffect),
+  (_effectRunnerMap[CPS] = runCPSEffect),
+  (_effectRunnerMap[FORK] = runForkEffect),
+  (_effectRunnerMap[JOIN] = runJoinEffect),
+  (_effectRunnerMap[CANCEL] = runCancelEffect),
+  (_effectRunnerMap[SELECT] = runSelectEffect),
+  (_effectRunnerMap[ACTION_CHANNEL] = runChannelEffect),
+  (_effectRunnerMap[CANCELLED$1] = runCancelledEffect),
+  (_effectRunnerMap[FLUSH] = runFlushEffect),
+  (_effectRunnerMap[GET_CONTEXT] = runGetContextEffect),
+  (_effectRunnerMap[SET_CONTEXT] = runSetContextEffect),
+  _effectRunnerMap);
+
+/**
+ Used to track a parent task and its forks
+ In the fork model, forked tasks are attached by default to their parent
+ We model this using the concept of Parent task && main Task
+ main task is the main flow of the current Generator, the parent tasks is the
+ aggregation of the main tasks + all its forked tasks.
+ Thus the whole model represents an execution tree with multiple branches (vs the
+ linear execution tree in sequential (non parallel) programming)
+
+ A parent tasks has the following semantics
+ - It completes if all its forks either complete or all cancelled
+ - If it's cancelled, all forks are cancelled as well
+ - It aborts if any uncaught error bubbles up from forks
+ - If it completes, the return value is the one returned by the main task
+ **/
+
+function forkQueue(mainTask, onAbort, cont) {
+  var tasks = [];
+  var result;
+  var completed = false;
+  addTask(mainTask);
+
+  var getTasks = function getTasks() {
+    return tasks;
+  };
+
+  function abort(err) {
+    onAbort();
+    cancelAll();
+    cont(err, true);
+  }
+
+  function addTask(task) {
+    tasks.push(task);
+
+    task.cont = function (res, isErr) {
+      if (completed) {
+        return;
+      }
+
+      remove(tasks, task);
+      task.cont = noop;
+
+      if (isErr) {
+        abort(res);
+      } else {
+        if (task === mainTask) {
+          result = res;
+        }
+
+        if (!tasks.length) {
+          completed = true;
+          cont(result);
+        }
+      }
+    };
+  }
+
+  function cancelAll() {
+    if (completed) {
+      return;
+    }
+
+    completed = true;
+    tasks.forEach(function (t) {
+      t.cont = noop;
+      t.cancel();
+    });
+    tasks = [];
+  }
+
+  return {
+    addTask: addTask,
+    cancelAll: cancelAll,
+    abort: abort,
+    getTasks: getTasks,
+  };
+}
+
+// there can be only a single saga error created at any given moment
+
+function formatLocation(fileName, lineNumber) {
+  return fileName + '?' + lineNumber;
+}
+
+function effectLocationAsString(effect) {
+  var location = getLocation(effect);
+
+  if (location) {
+    var code = location.code,
+      fileName = location.fileName,
+      lineNumber = location.lineNumber;
+    var source = code + '  ' + formatLocation(fileName, lineNumber);
+    return source;
+  }
+
+  return '';
+}
+
+function sagaLocationAsString(sagaMeta) {
+  var name = sagaMeta.name,
+    location = sagaMeta.location;
+
+  if (location) {
+    return name + '  ' + formatLocation(location.fileName, location.lineNumber);
+  }
+
+  return name;
+}
+
+function cancelledTasksAsString(sagaStack) {
+  var cancelledTasks = flatMap(function (i) {
+    return i.cancelledTasks;
+  }, sagaStack);
+
+  if (!cancelledTasks.length) {
+    return '';
+  }
+
+  return ['Tasks cancelled due to error:'].concat(cancelledTasks).join('\n');
+}
+
+var crashedEffect = null;
+var sagaStack = [];
+var addSagaFrame = function addSagaFrame(frame) {
+  frame.crashedEffect = crashedEffect;
+  sagaStack.push(frame);
+};
+var clear = function clear() {
+  crashedEffect = null;
+  sagaStack.length = 0;
+}; // this sets crashed effect for the soon-to-be-reported saga frame
+// this slightly streatches the singleton nature of this module into wrong direction
+// as it's even less obvious what's the data flow here, but it is what it is for now
+
+var setCrashedEffect = function setCrashedEffect(effect) {
+  crashedEffect = effect;
+};
+/**
+  @returns {string}
+
+  @example
+  The above error occurred in task errorInPutSaga {pathToFile}
+  when executing effect put({type: 'REDUCER_ACTION_ERROR_IN_PUT'}) {pathToFile}
+      created by fetchSaga {pathToFile}
+      created by rootSaga {pathToFile}
+*/
+
+var toString = function toString() {
+  var firstSaga = sagaStack[0],
+    otherSagas = sagaStack.slice(1);
+  var crashedEffectLocation = firstSaga.crashedEffect ? effectLocationAsString(firstSaga.crashedEffect) : null;
+  var errorMessage =
+    'The above error occurred in task ' +
+    sagaLocationAsString(firstSaga.meta) +
+    (crashedEffectLocation ? ' \n when executing effect ' + crashedEffectLocation : '');
+  return [errorMessage]
+    .concat(
+      otherSagas.map(function (s) {
+        return '    created by ' + sagaLocationAsString(s.meta);
+      }),
+      [cancelledTasksAsString(sagaStack)]
+    )
+    .join('\n');
+};
+
+function newTask(env, mainTask, parentContext, parentEffectId, meta, isRoot, cont) {
+  var _task;
+
+  if (cont === void 0) {
+    cont = noop;
+  }
+
+  var status = RUNNING;
+  var taskResult;
+  var taskError;
+  var deferredEnd = null;
+  var cancelledDueToErrorTasks = [];
+  var context = Object.create(parentContext);
+  var queue = forkQueue(
+    mainTask,
+    function onAbort() {
+      cancelledDueToErrorTasks.push.apply(
+        cancelledDueToErrorTasks,
+        queue.getTasks().map(function (t) {
+          return t.meta.name;
+        })
+      );
+    },
+    end
+  );
+  /**
+   This may be called by a parent generator to trigger/propagate cancellation
+   cancel all pending tasks (including the main task), then end the current task.
+    Cancellation propagates down to the whole execution tree held by this Parent task
+   It's also propagated to all joiners of this task and their execution tree/joiners
+    Cancellation is noop for terminated/Cancelled tasks tasks
+   **/
+
+  function cancel() {
+    if (status === RUNNING) {
+      // Setting status to CANCELLED does not necessarily mean that the task/iterators are stopped
+      // effects in the iterator's finally block will still be executed
+      status = CANCELLED;
+      queue.cancelAll(); // Ending with a TASK_CANCEL will propagate the Cancellation to all joiners
+
+      end(TASK_CANCEL, false);
+    }
+  }
+
+  function end(result, isErr) {
+    if (!isErr) {
+      // The status here may be RUNNING or CANCELLED
+      // If the status is CANCELLED, then we do not need to change it here
+      if (result === TASK_CANCEL) {
+        status = CANCELLED;
+      } else if (status !== CANCELLED) {
+        status = DONE;
+      }
+
+      taskResult = result;
+      deferredEnd && deferredEnd.resolve(result);
+    } else {
+      status = ABORTED;
+      addSagaFrame({
+        meta: meta,
+        cancelledTasks: cancelledDueToErrorTasks,
+      });
+
+      if (task.isRoot) {
+        var sagaStack = toString(); // we've dumped the saga stack to string and are passing it to user's code
+        // we know that it won't be needed anymore and we need to clear it
+
+        clear();
+        env.onError(result, {
+          sagaStack: sagaStack,
+        });
+      }
+
+      taskError = result;
+      deferredEnd && deferredEnd.reject(result);
+    }
+
+    task.cont(result, isErr);
+    task.joiners.forEach(function (joiner) {
+      joiner.cb(result, isErr);
+    });
+    task.joiners = null;
+  }
+
+  function setContext(props) {
+    {
+      check(props, object, createSetContextWarning('task', props));
+    }
+
+    assignWithSymbols(context, props);
+  }
+
+  function toPromise() {
+    if (deferredEnd) {
+      return deferredEnd.promise;
+    }
+
+    deferredEnd = deferred();
+
+    if (status === ABORTED) {
+      deferredEnd.reject(taskError);
+    } else if (status !== RUNNING) {
+      deferredEnd.resolve(taskResult);
+    }
+
+    return deferredEnd.promise;
+  }
+
+  var task =
+    ((_task = {}),
+    (_task[TASK] = true),
+    (_task.id = parentEffectId),
+    (_task.meta = meta),
+    (_task.isRoot = isRoot),
+    (_task.context = context),
+    (_task.joiners = []),
+    (_task.queue = queue),
+    (_task.cancel = cancel),
+    (_task.cont = cont),
+    (_task.end = end),
+    (_task.setContext = setContext),
+    (_task.toPromise = toPromise),
+    (_task.isRunning = function isRunning() {
+      return status === RUNNING;
+    }),
+    (_task.isCancelled = function isCancelled() {
+      return status === CANCELLED || (status === RUNNING && mainTask.status === CANCELLED);
+    }),
+    (_task.isAborted = function isAborted() {
+      return status === ABORTED;
+    }),
+    (_task.result = function result() {
+      return taskResult;
+    }),
+    (_task.error = function error() {
+      return taskError;
+    }),
+    _task);
+  return task;
+}
+
+function proc(env, iterator$1, parentContext, parentEffectId, meta, isRoot, cont) {
+  if (iterator$1[asyncIteratorSymbol]) {
+    throw new Error("redux-saga doesn't support async generators, please use only regular ones");
+  }
+
+  var finalRunEffect = env.finalizeRunEffect(runEffect);
+  /**
+    Tracks the current effect cancellation
+    Each time the generator progresses. calling runEffect will set a new value
+    on it. It allows propagating cancellation to child effects
+  **/
+
+  next.cancel = noop;
+  /** Creates a main task to track the main flow */
+
+  var mainTask = {
+    meta: meta,
+    cancel: cancelMain,
+    status: RUNNING,
+  };
+  /**
+   Creates a new task descriptor for this generator.
+   A task is the aggregation of it's mainTask and all it's forked tasks.
+   **/
+
+  var task = newTask(env, mainTask, parentContext, parentEffectId, meta, isRoot, cont);
+  var executingContext = {
+    task: task,
+    digestEffect: digestEffect,
+  };
+  /**
+    cancellation of the main task. We'll simply resume the Generator with a TASK_CANCEL
+  **/
+
+  function cancelMain() {
+    if (mainTask.status === RUNNING) {
+      mainTask.status = CANCELLED;
+      next(TASK_CANCEL);
+    }
+  }
+  /**
+    attaches cancellation logic to this task's continuation
+    this will permit cancellation to propagate down the call chain
+  **/
+
+  if (cont) {
+    cont.cancel = task.cancel;
+  } // kicks up the generator
+
+  next(); // then return the task descriptor to the caller
+
+  return task;
+  /**
+   * This is the generator driver
+   * It's a recursive async/continuation function which calls itself
+   * until the generator terminates or throws
+   * @param {internal commands(TASK_CANCEL | TERMINATE) | any} arg - value, generator will be resumed with.
+   * @param {boolean} isErr - the flag shows if effect finished with an error
+   *
+   * receives either (command | effect result, false) or (any thrown thing, true)
+   */
+
+  function next(arg, isErr) {
+    try {
+      var result;
+
+      if (isErr) {
+        result = iterator$1.throw(arg); // user handled the error, we can clear bookkept values
+
+        clear();
+      } else if (shouldCancel(arg)) {
+        /**
+          getting TASK_CANCEL automatically cancels the main task
+          We can get this value here
+           - By cancelling the parent task manually
+          - By joining a Cancelled task
+        **/
+        mainTask.status = CANCELLED;
+        /**
+          Cancels the current effect; this will propagate the cancellation down to any called tasks
+        **/
+
+        next.cancel();
+        /**
+          If this Generator has a `return` method then invokes it
+          This will jump to the finally block
+        **/
+
+        result = func(iterator$1.return)
+          ? iterator$1.return(TASK_CANCEL)
+          : {
+              done: true,
+              value: TASK_CANCEL,
+            };
+      } else if (shouldTerminate(arg)) {
+        // We get TERMINATE flag, i.e. by taking from a channel that ended using `take` (and not `takem` used to trap End of channels)
+        result = func(iterator$1.return)
+          ? iterator$1.return()
+          : {
+              done: true,
+            };
+      } else {
+        result = iterator$1.next(arg);
+      }
+
+      if (!result.done) {
+        digestEffect(result.value, parentEffectId, next);
+      } else {
+        /**
+          This Generator has ended, terminate the main task and notify the fork queue
+        **/
+        if (mainTask.status !== CANCELLED) {
+          mainTask.status = DONE;
+        }
+
+        mainTask.cont(result.value);
+      }
+    } catch (error) {
+      if (mainTask.status === CANCELLED) {
+        throw error;
+      }
+
+      mainTask.status = ABORTED;
+      mainTask.cont(error, true);
+    }
+  }
+
+  function runEffect(effect, effectId, currCb) {
+    /**
+      each effect runner must attach its own logic of cancellation to the provided callback
+      it allows this generator to propagate cancellation downward.
+       ATTENTION! effect runners must setup the cancel logic by setting cb.cancel = [cancelMethod]
+      And the setup must occur before calling the callback
+       This is a sort of inversion of control: called async functions are responsible
+      of completing the flow by calling the provided continuation; while caller functions
+      are responsible for aborting the current flow by calling the attached cancel function
+       Library users can attach their own cancellation logic to promises by defining a
+      promise[CANCEL] method in their returned promises
+      ATTENTION! calling cancel must have no effect on an already completed or cancelled effect
+    **/
+    if (promise(effect)) {
+      resolvePromise(effect, currCb);
+    } else if (iterator(effect)) {
+      // resolve iterator
+      proc(
+        env,
+        effect,
+        task.context,
+        effectId,
+        meta,
+        /* isRoot */
+        false,
+        currCb
+      );
+    } else if (effect && effect[IO]) {
+      var effectRunner = effectRunnerMap[effect.type];
+      effectRunner(env, effect.payload, currCb, executingContext);
+    } else {
+      // anything else returned as is
+      currCb(effect);
+    }
+  }
+
+  function digestEffect(effect, parentEffectId, cb, label) {
+    if (label === void 0) {
+      label = '';
+    }
+
+    var effectId = nextSagaId();
+    env.sagaMonitor &&
+      env.sagaMonitor.effectTriggered({
+        effectId: effectId,
+        parentEffectId: parentEffectId,
+        label: label,
+        effect: effect,
+      });
+    /**
+      completion callback and cancel callback are mutually exclusive
+      We can't cancel an already completed effect
+      And We can't complete an already cancelled effectId
+    **/
+
+    var effectSettled; // Completion callback passed to the appropriate effect runner
+
+    function currCb(res, isErr) {
+      if (effectSettled) {
+        return;
+      }
+
+      effectSettled = true;
+      cb.cancel = noop; // defensive measure
+
+      if (env.sagaMonitor) {
+        if (isErr) {
+          env.sagaMonitor.effectRejected(effectId, res);
+        } else {
+          env.sagaMonitor.effectResolved(effectId, res);
+        }
+      }
+
+      if (isErr) {
+        setCrashedEffect(effect);
+      }
+
+      cb(res, isErr);
+    } // tracks down the current cancel
+
+    currCb.cancel = noop; // setup cancellation logic on the parent cb
+
+    cb.cancel = function () {
+      // prevents cancelling an already completed effect
+      if (effectSettled) {
+        return;
+      }
+
+      effectSettled = true;
+      currCb.cancel(); // propagates cancel downward
+
+      currCb.cancel = noop; // defensive measure
+
+      env.sagaMonitor && env.sagaMonitor.effectCancelled(effectId);
+    };
+
+    finalRunEffect(effect, effectId, currCb);
+  }
+}
+
+var RUN_SAGA_SIGNATURE = 'runSaga(options, saga, ...args)';
+var NON_GENERATOR_ERR = RUN_SAGA_SIGNATURE + ': saga argument must be a Generator function!';
+function runSaga(_ref, saga) {
+  var _ref$channel = _ref.channel,
+    channel = _ref$channel === void 0 ? stdChannel() : _ref$channel,
+    dispatch = _ref.dispatch,
+    getState = _ref.getState,
+    _ref$context = _ref.context,
+    context = _ref$context === void 0 ? {} : _ref$context,
+    sagaMonitor = _ref.sagaMonitor,
+    effectMiddlewares = _ref.effectMiddlewares,
+    _ref$onError = _ref.onError,
+    onError = _ref$onError === void 0 ? logError : _ref$onError;
+
+  {
+    check(saga, func, NON_GENERATOR_ERR);
+  }
+
+  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    args[_key - 2] = arguments[_key];
+  }
+
+  var iterator$1 = saga.apply(void 0, args);
+
+  {
+    check(iterator$1, iterator, NON_GENERATOR_ERR);
+  }
+
+  var effectId = nextSagaId();
+
+  if (sagaMonitor) {
+    // monitors are expected to have a certain interface, let's fill-in any missing ones
+    sagaMonitor.rootSagaStarted = sagaMonitor.rootSagaStarted || noop;
+    sagaMonitor.effectTriggered = sagaMonitor.effectTriggered || noop;
+    sagaMonitor.effectResolved = sagaMonitor.effectResolved || noop;
+    sagaMonitor.effectRejected = sagaMonitor.effectRejected || noop;
+    sagaMonitor.effectCancelled = sagaMonitor.effectCancelled || noop;
+    sagaMonitor.actionDispatched = sagaMonitor.actionDispatched || noop;
+    sagaMonitor.rootSagaStarted({
+      effectId: effectId,
+      saga: saga,
+      args: args,
+    });
+  }
+
+  {
+    if (notUndef(dispatch)) {
+      check(dispatch, func, 'dispatch must be a function');
+    }
+
+    if (notUndef(getState)) {
+      check(getState, func, 'getState must be a function');
+    }
+
+    if (notUndef(effectMiddlewares)) {
+      var MIDDLEWARE_TYPE_ERROR = 'effectMiddlewares must be an array of functions';
+      check(effectMiddlewares, array$1, MIDDLEWARE_TYPE_ERROR);
+      effectMiddlewares.forEach(function (effectMiddleware) {
+        return check(effectMiddleware, func, MIDDLEWARE_TYPE_ERROR);
+      });
+    }
+
+    check(onError, func, 'onError passed to the redux-saga is not a function!');
+  }
+
+  var finalizeRunEffect;
+
+  if (effectMiddlewares) {
+    var middleware = compose$1.apply(void 0, effectMiddlewares);
+
+    finalizeRunEffect = function finalizeRunEffect(runEffect) {
+      return function (effect, effectId, currCb) {
+        var plainRunEffect = function plainRunEffect(eff) {
+          return runEffect(eff, effectId, currCb);
+        };
+
+        return middleware(plainRunEffect)(effect);
+      };
+    };
+  } else {
+    finalizeRunEffect = identity;
+  }
+
+  var env = {
+    channel: channel,
+    dispatch: wrapSagaDispatch(dispatch),
+    getState: getState,
+    sagaMonitor: sagaMonitor,
+    onError: onError,
+    finalizeRunEffect: finalizeRunEffect,
+  };
+  return immediately(function () {
+    var task = proc(
+      env,
+      iterator$1,
+      context,
+      effectId,
+      getMetaInfo(saga),
+      /* isRoot */
+      true,
+      undefined
+    );
+
+    if (sagaMonitor) {
+      sagaMonitor.effectResolved(effectId, task);
+    }
+
+    return task;
+  });
+}
+
+function sagaMiddlewareFactory(_temp) {
+  var _ref = _temp === void 0 ? {} : _temp,
+    _ref$context = _ref.context,
+    context = _ref$context === void 0 ? {} : _ref$context,
+    _ref$channel = _ref.channel,
+    channel = _ref$channel === void 0 ? stdChannel() : _ref$channel,
+    sagaMonitor = _ref.sagaMonitor,
+    options = _objectWithoutPropertiesLoose(_ref, ['context', 'channel', 'sagaMonitor']);
+
+  var boundRunSaga;
+
+  {
+    check(channel, channel$1, 'options.channel passed to the Saga middleware is not a channel');
+  }
+
+  function sagaMiddleware(_ref2) {
+    var getState = _ref2.getState,
+      dispatch = _ref2.dispatch;
+    boundRunSaga = runSaga.bind(
+      null,
+      _extends({}, options, {
+        context: context,
+        channel: channel,
+        dispatch: dispatch,
+        getState: getState,
+        sagaMonitor: sagaMonitor,
+      })
+    );
+    return function (next) {
+      return function (action) {
+        if (sagaMonitor && sagaMonitor.actionDispatched) {
+          sagaMonitor.actionDispatched(action);
+        }
+
+        var result = next(action); // hit reducers
+
+        channel.put(action);
+        return result;
+      };
+    };
+  }
+
+  sagaMiddleware.run = function () {
+    if (!boundRunSaga) {
+      throw new Error('Before running a Saga, you must mount the Saga middleware on the Store using applyMiddleware');
+    }
+
+    return boundRunSaga.apply(void 0, arguments);
+  };
+
+  sagaMiddleware.setContext = function (props) {
+    {
+      check(props, object, createSetContextWarning('sagaMiddleware', props));
+    }
+
+    assignWithSymbols(context, props);
+  };
+
+  return sagaMiddleware;
+}
+
+const initialState = {
+  board: getNewBoard(),
+  history: [],
+  steps: 0,
+  stepIndex: 0,
+};
+function gameReducer(state = initialState, action) {
+  switch (action.type) {
+    case GameTypes.shuffle:
+      return {
+        ...state,
+        board: action.payload,
+        history: [action.payload],
+        steps: 0,
+        stepIndex: 0,
+      };
+    case GameTypes.move:
+      return {
+        ...state,
+        board: action.payload,
+        history: [...state.history, action.payload],
+        steps: state.steps + 1,
+        stepIndex: state.stepIndex + 1,
+      };
+    case GameTypes.undo:
+      return {
+        ...state,
+        ...action.payload,
+      };
+    default:
+      return state;
+  }
+}
+
+const rootReducer = combineReducers({
+  game: gameReducer,
+});
+
+var done = function done(value) {
+  return {
+    done: true,
+    value: value,
+  };
+};
+
+var qEnd = {};
+function safeName(patternOrChannel) {
+  if (channel$1(patternOrChannel)) {
+    return 'channel';
+  }
+
+  if (stringableFunc(patternOrChannel)) {
+    return String(patternOrChannel);
+  }
+
+  if (func(patternOrChannel)) {
+    return patternOrChannel.name;
+  }
+
+  return String(patternOrChannel);
+}
+function fsmIterator(fsm, startState, name) {
+  var stateUpdater,
+    errorState,
+    effect,
+    nextState = startState;
+
+  function next(arg, error) {
+    if (nextState === qEnd) {
+      return done(arg);
+    }
+
+    if (error && !errorState) {
+      nextState = qEnd;
+      throw error;
+    } else {
+      stateUpdater && stateUpdater(arg);
+      var currentState = error ? fsm[errorState](error) : fsm[nextState]();
+      nextState = currentState.nextState;
+      effect = currentState.effect;
+      stateUpdater = currentState.stateUpdater;
+      errorState = currentState.errorState;
+      return nextState === qEnd ? done(arg) : effect;
+    }
+  }
+
+  return makeIterator(
+    next,
+    function (error) {
+      return next(null, error);
+    },
+    name
+  );
+}
+
+function takeEvery(patternOrChannel, worker) {
+  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    args[_key - 2] = arguments[_key];
+  }
+
+  var yTake = {
+    done: false,
+    value: take(patternOrChannel),
+  };
+
+  var yFork = function yFork(ac) {
+    return {
+      done: false,
+      value: fork.apply(void 0, [worker].concat(args, [ac])),
+    };
+  };
+
+  var action,
+    setAction = function setAction(ac) {
+      return (action = ac);
+    };
+
+  return fsmIterator(
+    {
+      q1: function q1() {
+        return {
+          nextState: 'q2',
+          effect: yTake,
+          stateUpdater: setAction,
+        };
+      },
+      q2: function q2() {
+        return {
+          nextState: 'q1',
+          effect: yFork(action),
+        };
+      },
+    },
+    'q1',
+    'takeEvery(' + safeName(patternOrChannel) + ', ' + worker.name + ')'
+  );
+}
+
+function takeLatest(patternOrChannel, worker) {
+  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    args[_key - 2] = arguments[_key];
+  }
+
+  var yTake = {
+    done: false,
+    value: take(patternOrChannel),
+  };
+
+  var yFork = function yFork(ac) {
+    return {
+      done: false,
+      value: fork.apply(void 0, [worker].concat(args, [ac])),
+    };
+  };
+
+  var yCancel = function yCancel(task) {
+    return {
+      done: false,
+      value: cancel(task),
+    };
+  };
+
+  var task, action;
+
+  var setTask = function setTask(t) {
+    return (task = t);
+  };
+
+  var setAction = function setAction(ac) {
+    return (action = ac);
+  };
+
+  return fsmIterator(
+    {
+      q1: function q1() {
+        return {
+          nextState: 'q2',
+          effect: yTake,
+          stateUpdater: setAction,
+        };
+      },
+      q2: function q2() {
+        return task
+          ? {
+              nextState: 'q3',
+              effect: yCancel(task),
+            }
+          : {
+              nextState: 'q1',
+              effect: yFork(action),
+              stateUpdater: setTask,
+            };
+      },
+      q3: function q3() {
+        return {
+          nextState: 'q1',
+          effect: yFork(action),
+          stateUpdater: setTask,
+        };
+      },
+    },
+    'q1',
+    'takeLatest(' + safeName(patternOrChannel) + ', ' + worker.name + ')'
+  );
+}
+
+var validateTakeEffect = function validateTakeEffect(fn, patternOrChannel, worker) {
+  check(patternOrChannel, notUndef, fn.name + ' requires a pattern or channel');
+  check(worker, notUndef, fn.name + ' requires a saga parameter');
+};
+
+function takeEvery$1(patternOrChannel, worker) {
+  {
+    validateTakeEffect(takeEvery$1, patternOrChannel, worker);
+  }
+
+  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    args[_key - 2] = arguments[_key];
+  }
+
+  return fork.apply(void 0, [takeEvery, patternOrChannel, worker].concat(args));
+}
+function takeLatest$1(patternOrChannel, worker) {
+  {
+    validateTakeEffect(takeLatest$1, patternOrChannel, worker);
+  }
+
+  for (var _len2 = arguments.length, args = new Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
+    args[_key2 - 2] = arguments[_key2];
+  }
+
+  return fork.apply(void 0, [takeLatest, patternOrChannel, worker].concat(args));
+}
+
+function* workerSagaOnShuffle() {
+  const { board } = yield select((state) => state.game);
+  const shuffleBoard = shuffle(board);
+  yield put({ type: GameTypes.shuffle, payload: shuffleBoard });
+}
+function* workerSagaOnMove(data) {
+  const { payload } = data;
+  const { board } = yield select((state) => state.game);
+  const moved = moveTile(board, payload);
+  yield put({ type: GameTypes.move, payload: moved });
+}
+function* workerSagaOnUndo() {
+  const { board, history, steps, stepIndex } = yield select((state) => state.game);
+  if (history[stepIndex - 1]) {
+    const newHistory = history.filter((_, index) => index !== history.length - 1);
+    const newBoard = newHistory[stepIndex - 1];
+    const newStepIndex = stepIndex - 1;
+    const newSteps = steps + 1;
+    const payload = {
+      board: newBoard,
+      history: newHistory,
+      steps: newSteps,
+      stepIndex: newStepIndex,
+    };
+    yield put({ type: GameTypes.undo, payload });
+  }
+}
+function* watchClickSaga() {
+  yield takeEvery$1(GameActionTypes.onShuffle, workerSagaOnShuffle);
+  yield takeLatest$1(GameActionTypes.onMove, workerSagaOnMove);
+  yield takeLatest$1(GameActionTypes.onUndo, workerSagaOnUndo);
+}
+function* rootSaga() {
+  yield watchClickSaga();
+}
+
+const sagaMiddleware = sagaMiddlewareFactory();
+const store = createStore(rootReducer, composeWithDevTools(applyMiddleware(sagaMiddleware)));
+sagaMiddleware.run(rootSaga);
+
 const root = client.createRoot(document.getElementById('root'));
-root.render(jsxRuntimeExports.jsx(App, {}));
+root.render(jsxRuntimeExports.jsx(Provider, { store: store, children: jsxRuntimeExports.jsx(App, {}) }));

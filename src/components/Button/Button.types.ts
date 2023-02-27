@@ -5,4 +5,5 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   x: number;
   y: number;
   isHide: boolean;
+  index: number;
 };
