@@ -37198,6 +37198,14 @@ var m = reactDomExports;
   };
 }
 
+const ROWS = 4;
+const COLS = 4;
+const TOTAL_COUNT = ROWS * COLS;
+const EMPTY_INDEX = TOTAL_COUNT - 1;
+const SHUFFLE_MOVES_RANGE_MIN = 60;
+const SHUFFLE_MOVES_RANGE_MAX = 80;
+const MOVE_DIRECTIONS = ['up', 'down', 'left', 'right'];
+
 function styleInject(css, ref) {
   if (ref === void 0) ref = {};
   var insertAt = ref.insertAt;
@@ -37270,16 +37278,6 @@ const Button = ({ children, x, y, isHide, ...rest }) => {
   });
 };
 
-var css_248z$1 =
-  ".Steps-module_steps__5VyvB {\n  display: flex;\n  justify-content: center;\n  align-items: center; }\n  .Steps-module_steps__buttons__AiIkv {\n    border: 1px solid #000;\n    border-radius: 100%;\n    width: 50px;\n    height: 50px;\n    background-repeat: no-repeat;\n    background-position: center;\n    background-size: 40px 30px;\n    background-color: #f2f2f2;\n    margin: 0 10px;\n    cursor: pointer; }\n    .Steps-module_steps__buttons__AiIkv:hover {\n      border-color: #999; }\n    .Steps-module_steps__buttons__AiIkv:disabled {\n      border-color: #999;\n      opacity: 0.7;\n      cursor: default; }\n    .Steps-module_steps__buttons_undo__HnAqi {\n      background-image: url(\"data:image/svg+xml,%3C%3Fxml version='1.0' %3F%3E%3Csvg height='16px' id='Layer_1' style='enable-background:new 0 0 16 16;' version='1.1' viewBox='0 0 16 16' width='16px' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'%3E%3Cstyle type='text/css'%3E .cls-1%7Bfill:none;%7D%0A%3C/style%3E%3Cpath d='M12,8c1.2,0,2,0.8,2,2c0,1.2-0.8,2-2,2H9v1h3c1.7,0,3-1.2,3-3c0-1.7-1.3-3-3-3L2.9,7l2-2L4.2,4.3L1,7.5 l3.2,3.2L4.9,10l-2-2L12,8z' id='_x31_6_px_4_'/%3E%3Crect class='cls-1' data-name='&lt;Transparent Rectangle&gt;' height='16' id='_Transparent_Rectangle_' width='16'/%3E%3C/svg%3E\"); }\n    .Steps-module_steps__buttons_redo__v42tZ {\n      background-image: url(\"data:image/svg+xml,%3C%3Fxml version='1.0' %3F%3E%3Csvg height='16px' id='Layer_1' style='enable-background:new 0 0 16 16;' version='1.1' viewBox='0 0 16 16' width='16px' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'%3E%3Cstyle type='text/css'%3E .cls-1%7Bfill:none;%7D%0A%3C/style%3E%3Cpath d='M4,8c-1.2,0-2,0.8-2,2c0,1.2,0.8,2,2,2h3v1H4c-1.7,0-3-1.2-3-3c0-1.7,1.3-3,3-3l9.1,0l-2-2l0.7-0.7 L15,7.5l-3.2,3.2L11.1,10l2-2L4,8z' id='_x31_6_px_3_'/%3E%3Crect class='cls-1' data-name='&lt;Transparent Rectangle&gt;' height='16' id='_Transparent_Rectangle_' width='16'/%3E%3C/svg%3E\"); }\n";
-var styles = {
-  steps: 'Steps-module_steps__5VyvB',
-  steps__buttons: 'Steps-module_steps__buttons__AiIkv',
-  steps__buttons_undo: 'Steps-module_steps__buttons_undo__HnAqi',
-  steps__buttons_redo: 'Steps-module_steps__buttons_redo__v42tZ',
-};
-styleInject(css_248z$1);
-
 var classnamesExports = {};
 var classnames = {
   get exports() {
@@ -37348,6 +37346,16 @@ var classnames = {
 
 var classNames = classnamesExports;
 
+var css_248z$1 =
+  ".Steps-module_steps__5VyvB {\n  display: flex;\n  justify-content: center;\n  align-items: center; }\n  .Steps-module_steps__buttons__AiIkv {\n    border: 1px solid #000;\n    border-radius: 100%;\n    width: 50px;\n    height: 50px;\n    background-repeat: no-repeat;\n    background-position: center;\n    background-size: 40px 30px;\n    background-color: #f2f2f2;\n    margin: 0 10px;\n    cursor: pointer; }\n    .Steps-module_steps__buttons__AiIkv:hover {\n      border-color: #999; }\n    .Steps-module_steps__buttons__AiIkv:disabled {\n      border-color: #999;\n      opacity: 0.7;\n      cursor: default; }\n    .Steps-module_steps__buttons_undo__HnAqi {\n      background-image: url(\"data:image/svg+xml,%3C%3Fxml version='1.0' %3F%3E%3Csvg height='16px' id='Layer_1' style='enable-background:new 0 0 16 16;' version='1.1' viewBox='0 0 16 16' width='16px' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'%3E%3Cstyle type='text/css'%3E .cls-1%7Bfill:none;%7D%0A%3C/style%3E%3Cpath d='M12,8c1.2,0,2,0.8,2,2c0,1.2-0.8,2-2,2H9v1h3c1.7,0,3-1.2,3-3c0-1.7-1.3-3-3-3L2.9,7l2-2L4.2,4.3L1,7.5 l3.2,3.2L4.9,10l-2-2L12,8z' id='_x31_6_px_4_'/%3E%3Crect class='cls-1' data-name='&lt;Transparent Rectangle&gt;' height='16' id='_Transparent_Rectangle_' width='16'/%3E%3C/svg%3E\"); }\n    .Steps-module_steps__buttons_redo__v42tZ {\n      background-image: url(\"data:image/svg+xml,%3C%3Fxml version='1.0' %3F%3E%3Csvg height='16px' id='Layer_1' style='enable-background:new 0 0 16 16;' version='1.1' viewBox='0 0 16 16' width='16px' xml:space='preserve' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'%3E%3Cstyle type='text/css'%3E .cls-1%7Bfill:none;%7D%0A%3C/style%3E%3Cpath d='M4,8c-1.2,0-2,0.8-2,2c0,1.2,0.8,2,2,2h3v1H4c-1.7,0-3-1.2-3-3c0-1.7,1.3-3,3-3l9.1,0l-2-2l0.7-0.7 L15,7.5l-3.2,3.2L11.1,10l2-2L4,8z' id='_x31_6_px_3_'/%3E%3Crect class='cls-1' data-name='&lt;Transparent Rectangle&gt;' height='16' id='_Transparent_Rectangle_' width='16'/%3E%3C/svg%3E\"); }\n";
+var styles = {
+  steps: 'Steps-module_steps__5VyvB',
+  steps__buttons: 'Steps-module_steps__buttons__AiIkv',
+  steps__buttons_undo: 'Steps-module_steps__buttons_undo__HnAqi',
+  steps__buttons_redo: 'Steps-module_steps__buttons_redo__v42tZ',
+};
+styleInject(css_248z$1);
+
 const Steps = ({ count, undoDisabled, undo }) => {
   return jsxRuntimeExports.jsxs('div', {
     className: styles.steps,
@@ -37361,14 +37369,6 @@ const Steps = ({ count, undoDisabled, undo }) => {
     ],
   });
 };
-
-const ROWS = 4;
-const COLS = 4;
-const TOTAL_COUNT = ROWS * COLS;
-const EMPTY_INDEX = TOTAL_COUNT - 1;
-const SHUFFLE_MOVES_RANGE_MIN = 60;
-const SHUFFLE_MOVES_RANGE_MAX = 80;
-const MOVE_DIRECTIONS = ['up', 'down', 'left', 'right'];
 
 const rand = (min, max) => {
   return min + Math.floor(Math.random() * (max - min + 1));
@@ -37406,7 +37406,7 @@ const moveTile = (board, index) => {
   if (canMoveTile(board, index)) {
     const emptyPosition = [...board[EMPTY_INDEX]];
     const tilePosition = [...board[index]];
-    let boardAfterMove = [...board];
+    const boardAfterMove = [...board];
     boardAfterMove[EMPTY_INDEX] = tilePosition;
     boardAfterMove[index] = emptyPosition;
     return boardAfterMove;
