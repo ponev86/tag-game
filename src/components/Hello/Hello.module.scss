@@ -1,0 +1,10 @@
+@import 'src/styles/mixins';
+
+.title {
+  @include bgColor(#999);
+  font-size: 20px;
+
+  &_green {
+    color: green;
+  }
+}

@@ -1,0 +1,6 @@
+@import 'mixins';
+@import 'reset';
+
+body {
+  @include bgColor(#333);
+}
