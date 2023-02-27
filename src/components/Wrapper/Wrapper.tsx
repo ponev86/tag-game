@@ -1,15 +1,15 @@
 import { FC } from 'react';
 
+import ShuffleButton from 'components/ShuffleButton';
+
 import styles from './Wrapper.module.scss';
 import { WrapperProps } from './Wrapper.types';
 
-const Wrapper: FC<WrapperProps> = ({ onShuffle, children }) => {
+const Wrapper: FC<WrapperProps> = ({ children }) => {
   return (
     <div className={styles.container}>
       <div className={styles.fifteen}>{children}</div>
-      <button type="button" className={styles.shuffle} onClick={onShuffle}>
-        Shuffle to start
-      </button>
+      <ShuffleButton />
     </div>
   );
 };
